@@ -1,7 +1,7 @@
 import { readFileSync } from "fs"
-import { resolve } from "path"
 import { createSourceFile, DefaultKeyword, ExportKeyword, isIdentifier, isLiteralTypeNode, isNumericLiteral, isStringLiteral, isTypeAliasDeclaration, isTypeReferenceNode, isUnionTypeNode, KeywordTypeNode, LiteralTypeNode, Modifier, ScriptTarget, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, UnionTypeNode } from "typescript"
 
+// TODO allow custom fileResolver for things like VS Code extensions
 export class Parser {
 	private types: Array<TypeDeclaration> = []
 
@@ -177,7 +177,7 @@ class TypeReferenceDeclaration extends TypeDeclaration {
 export class StringType {
 }
 
-class StringTypeDeclaration extends TypeDeclaration {
+export class StringTypeDeclaration extends TypeDeclaration {
 	public type: StringType = new StringType()
 
 	constructor(meta: DeclarationMeta) {
@@ -185,10 +185,10 @@ class StringTypeDeclaration extends TypeDeclaration {
 	}
 }
 
-class NumberType {
+export class NumberType {
 }
 
-class NumberTypeDeclaration extends TypeDeclaration {
+export class NumberTypeDeclaration extends TypeDeclaration {
 	public type: NumberType = new NumberType()
 
 	constructor(meta: DeclarationMeta) {
@@ -197,7 +197,7 @@ class NumberTypeDeclaration extends TypeDeclaration {
 }
 
 
-class LiteralType {
+export class LiteralType {
 	public value: string | number
 
 	constructor(type: LiteralTypeNode) {
@@ -211,7 +211,7 @@ class LiteralType {
 	}
 }
 
-class LiteralTypeDeclaration extends TypeDeclaration {
+export class LiteralTypeDeclaration extends TypeDeclaration {
 	public type: LiteralType
 
 	constructor(meta: DeclarationMeta, type: LiteralTypeNode) {
@@ -220,7 +220,7 @@ class LiteralTypeDeclaration extends TypeDeclaration {
 	}
 }
 
-class UnionType {
+export class UnionType {
 	public types: Array<Types>
 
 	constructor(type: UnionTypeNode) {
@@ -228,7 +228,7 @@ class UnionType {
 	}
 }
 
-class UnionTypeDeclaration extends TypeDeclaration {
+export class UnionTypeDeclaration extends TypeDeclaration {
 	public type: UnionType
 
 	constructor(meta: DeclarationMeta, type: UnionTypeNode) {
