@@ -1,6 +1,8 @@
 import test from 'ava';
 import { resolve } from 'path';
-import { Parser, StringType, StringTypeDeclaration } from '../src/parser';
+import { Parser } from '../src/parser';
+import { StringType } from "../src/models/StringType";
+import { StringTypeDeclaration } from "../src/models/StringTypeDeclaration";
 
 test('should parse the BasicString StringTypeDeclaration', t => {
 	const parser = new Parser(resolve(__dirname, "fixtures", "stringType.ts"));

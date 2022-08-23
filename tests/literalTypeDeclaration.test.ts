@@ -1,6 +1,8 @@
 import test from 'ava';
 import { resolve } from 'path';
-import { Parser, LiteralType, LiteralTypeDeclaration } from '../src/parser';
+import { LiteralType } from '../src/models/LiteralType';
+import { LiteralTypeDeclaration } from '../src/models/LiteralTypeDeclaration';
+import { Parser } from '../src/parser';
 
 test('should parse the BasicLiteral LiteralTypeDeclaration', t => {
 	const parser = new Parser(resolve(__dirname, "fixtures", "literalType.ts"));

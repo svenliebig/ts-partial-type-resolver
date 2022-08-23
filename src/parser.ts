@@ -5,29 +5,33 @@ import {
 	DefaultKeyword,
 	ExportKeyword,
 	ImportDeclaration,
-	isIdentifier,
 	isImportClause,
 	isImportDeclaration,
 	isImportSpecifier,
 	isLiteralTypeNode,
 	isNamedImports,
-	isNumericLiteral,
-	isStringLiteral,
 	isStringLiteralLike,
 	isTypeAliasDeclaration,
 	isTypeReferenceNode,
 	isUnionTypeNode,
 	KeywordTypeNode,
-	LiteralTypeNode,
 	Modifier,
 	ScriptTarget,
 	SyntaxKind,
 	TypeAliasDeclaration,
-	TypeNode,
-	TypeReferenceNode,
-	UnionTypeNode
-} from "typescript";
+	TypeNode} from "typescript";
+import { LiteralType } from "./models/LiteralType";
+import { LiteralTypeDeclaration } from "./models/LiteralTypeDeclaration";
+import { UnionType } from "./models/UnionType";
+import { UnionTypeDeclaration } from "./models/UnionTypeDeclaration";
+import { NumberType } from "./models/NumberType";
+import { NumberTypeDeclaration } from "./models/NumberTypeDeclaration";
+import { StringType } from "./models/StringType";
+import { StringTypeDeclaration } from "./models/StringTypeDeclaration";
+import { TypeReference } from "./models/TypeReference";
+import { TypeReferenceDeclaration } from "./models/TypeReferenceDeclaration";
 import { L } from "./utils/logger";
+import { TypeDeclaration } from "./models/TypeDeclaration";
 
 function createImport(statement: ImportDeclaration, source: string): Import {
 	const named: Array<string> = []
@@ -196,7 +200,7 @@ function isTypeReference(type: Types): type is TypeReference {
 	return false;
 }
 
-type DeclarationMeta = {
+export type DeclarationMeta = {
 	identifier: string;
 	exported: boolean;
 	default: boolean;
@@ -254,7 +258,7 @@ function isDefaultModifier(modifier: Modifier): modifier is DefaultKeyword {
 	return modifier.kind === SyntaxKind.DefaultKeyword;
 }
 
-function typeFactory(node: TypeNode) {
+export function typeFactory(node: TypeNode) {
 	if (isLiteralTypeNode(node)) {
 		return new LiteralType(node);
 	}
@@ -274,141 +278,7 @@ function typeFactory(node: TypeNode) {
 	throw new Error(`Unknown TypeNode kind: ${node.kind}`);
 }
 
-type Types = LiteralType | UnionType | StringType | TypeReference;
+export type Types = LiteralType | UnionType | StringType | TypeReference;
 type ResolvedType = Exclude<Types, TypeReference>;
 
-abstract class TypeDeclaration {
-	public abstract type: Types;
-	public identifier: string;
-	public exported: boolean;
-	public default: boolean;
 
-	constructor(meta: DeclarationMeta) {
-		this.identifier = meta.identifier;
-		this.exported = meta.exported;
-		this.default = meta.default;
-	}
-
-	getMeta(): DeclarationMeta {
-		return {
-			default: this.default,
-			exported: this.exported,
-			identifier: this.identifier,
-		};
-	}
-
-	abstract typeToString(): string
-
-	toString(): string {
-		return `${this.exported ? "export " : ""}type ${this.identifier} = ${this.typeToString()}`
-	}
-}
-
-class TypeReference {
-	public identifier: string;
-
-	constructor(type: TypeReferenceNode) {
-		console.log(type);
-		this.identifier = isIdentifier(type.typeName) ? type.typeName.text : "";
-	}
-}
-
-class TypeReferenceDeclaration extends TypeDeclaration {
-	public type: TypeReference;
-	constructor(meta: DeclarationMeta, type: TypeReferenceNode) {
-		super(meta);
-		this.type = new TypeReference(type);
-	}
-
-	typeToString(): string {
-		return this.type.identifier
-	}
-}
-
-export class StringType {
-		toString() { return "string" }
-}
-
-export class StringTypeDeclaration extends TypeDeclaration {
-	public type: StringType = new StringType();
-	
-	constructor(meta: DeclarationMeta) {
-		super(meta);
-	}
-
-	typeToString(): string {
-		return "string"
-	}
-}
-
-export class NumberType {
-	toString() { return "number" }
-}
-
-export class NumberTypeDeclaration extends TypeDeclaration {
-	public type: NumberType = new NumberType();
-	
-	constructor(meta: DeclarationMeta) {
-		super(meta);
-	}
-
-	typeToString(): string {
-		return this.type.toString()
-	}
-}
-
-export class LiteralType {
-	public value: string | number;
-
-	constructor(type: LiteralTypeNode) {
-		if (isStringLiteral(type.literal)) {
-			this.value = `"${type.literal.text}"`;
-		} else if (isNumericLiteral(type.literal)) {
-			this.value = parseFloat(type.literal.text);
-		} else {
-			throw new Error(`Unknown LiteralType kind: ${type.literal.kind}`);
-		}
-	}
-
-	toString() {
-		return `${this.value}`
-	}
-}
-
-export class LiteralTypeDeclaration extends TypeDeclaration {
-	public type: LiteralType;
-	
-	constructor(meta: DeclarationMeta, type: LiteralTypeNode) {
-		super(meta);
-		this.type = new LiteralType(type);
-	}
-
-	typeToString(): string {
-		return `${this.type.toString()}`
-	}
-}
-
-export class UnionType {
-	public types: Array<Types>;
-
-	constructor(type: UnionTypeNode) {
-		this.types = type.types.map(typeFactory);
-	}
-
-	toString(): string {
-		return this.types.map(type => type.toString()).join(" | ")
-	}
-}
-
-export class UnionTypeDeclaration extends TypeDeclaration {
-	public type: UnionType;
-
-	constructor(meta: DeclarationMeta, type: UnionTypeNode) {
-		super(meta);
-		this.type = new UnionType(type);
-	}
-
-	typeToString(): string {
-		return this.type.toString()
-	}
-}
