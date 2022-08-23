@@ -2,11 +2,11 @@ import { readFileSync } from "fs"
 import { resolve } from "path"
 import { createSourceFile, DefaultKeyword, ExportKeyword, isIdentifier, isLiteralTypeNode, isNumericLiteral, isStringLiteral, isTypeAliasDeclaration, isTypeReferenceNode, isUnionTypeNode, KeywordTypeNode, LiteralTypeNode, Modifier, ScriptTarget, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, UnionTypeNode } from "typescript"
 
-class Parser {
+export class Parser {
 	private types: Array<TypeDeclaration> = []
 
-	constructor() {
-		const content = readFileSync(resolve(__dirname, "tests", "fixtures", "example.ts"), "utf-8")
+	constructor(path: string) {
+		const content = readFileSync(path, "utf-8")
 		const file = createSourceFile("e", content, ScriptTarget.ESNext);
 
 		file.statements.forEach(statement => {
@@ -174,7 +174,7 @@ class TypeReferenceDeclaration extends TypeDeclaration {
 	}
 }
 
-class StringType {
+export class StringType {
 }
 
 class StringTypeDeclaration extends TypeDeclaration {
@@ -237,7 +237,3 @@ class UnionTypeDeclaration extends TypeDeclaration {
 	}
 }
 
-const parser = new Parser()
-console.log(parser.getTypeDeclaration("Snow"))
-console.log(parser.resolve("Snow"))
-console.log()
