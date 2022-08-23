@@ -1,2 +1,2 @@
-type basic = string
-export type exportedBasic = string
+type BasicString = string
+export type ExportedBasicString = string
