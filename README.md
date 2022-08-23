@@ -6,7 +6,7 @@ But feel free to look around!
 
 ---------------------
 
-This project has it's motiviation from creating mock data. I want to resolve types without compiling the whole project, and just load these types that I need. The goal is to transform types like this:
+This project has it's motiviation from creating mock data. I want to resolve types without compiling the whole project, and just load these types that I need. The goal is to resolve types like this:
 
 ```ts
 type Person = {
