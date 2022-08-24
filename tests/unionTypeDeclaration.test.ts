@@ -60,3 +60,13 @@ test('toString for ImportedComplexUnion after resolving', t => {
 	const str = parser.resolve("ImportedComplexUnion")?.toString();
 	t.is(str, "type ImportedComplexUnion = { union: string | number, nested: { object: { str: string, num: number } } } | string | number")
 })
+
+test('toString for ImportedArrayUnion after resolving', t => {
+	const str = parser.resolve("ImportedArrayUnion")?.toString();
+	t.is(str, "type ImportedArrayUnion = Array<string> | { arr: Array<string | number> }")
+})
+
+test('toString for ImportedArrayVersionUnion after resolving', t => {
+	const str = parser.resolve("ImportedArrayVersionUnion")?.toString();
+	t.is(str, "type ImportedArrayVersionUnion = Array<string> | { arr: Array<string | number> }")
+})

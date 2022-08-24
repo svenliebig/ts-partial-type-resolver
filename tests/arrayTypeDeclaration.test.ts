@@ -23,3 +23,28 @@ test('toString for BasicArray', t => {
 	const str = parser.getTypeDeclaration("BasicArray")?.toString();
 	t.is(str, "type BasicArray = Array<string>")
 })
+
+test('toString for BasicArrayVersion', t => {
+	const str = parser.getTypeDeclaration("BasicArrayVersion")?.toString();
+	t.is(str, "type BasicArrayVersion = Array<string>")
+})
+
+test('toString for UnionArray', t => {
+	const str = parser.getTypeDeclaration("UnionArray")?.toString();
+	t.is(str, "type UnionArray = Array<string | number>")
+})
+
+test('toString for ObjectArray', t => {
+	const str = parser.getTypeDeclaration("ObjectArray")?.toString();
+	t.is(str, "type ObjectArray = Array<{ str: string }>")
+})
+
+test('toString for ArrayObjectArray', t => {
+	const str = parser.getTypeDeclaration("ArrayObjectArray")?.toString();
+	t.is(str, "type ArrayObjectArray = Array<{ str: Array<string | number> }>")
+})
+
+test('toString for ImportedBasicArrayType after resolve', t => {
+	const str = parser.resolve("ImportedBasicArrayType")?.toString();
+	t.is(str, "type ImportedBasicArrayType = Array<string>")
+})

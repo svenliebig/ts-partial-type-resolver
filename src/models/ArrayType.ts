@@ -1,20 +1,24 @@
-import { isIdentifier, ArrayTypeNode, TypeReferenceNode, createUnparsedSourceFile } from "typescript";
+import { ArrayTypeNode, isTypeReferenceNode, TypeReferenceNode } from "typescript";
 import { typeFactory, Types } from "../parser";
-import { L } from "../utils/logger";
 import { StringType } from "./StringType";
 
 
 export class ArrayType {
 	public arrayType: Types;
 
-	constructor(node: TypeReferenceNode) {
-		// TODO
+	// TODO these type do not belong here
+	constructor(node: TypeReferenceNode | ArrayTypeNode) {
+		// TODO this should not be necessary
 		this.arrayType = new StringType()
 
-		if (node.typeArguments) {
-			for (const argument of node.typeArguments) {
-				this.arrayType = typeFactory(argument)
+		if (isTypeReferenceNode(node)) {
+			if (node.typeArguments) {
+				for (const argument of node.typeArguments) {
+					this.arrayType = typeFactory(argument)
+				}
 			}
+		} else {
+			this.arrayType = typeFactory(node.elementType)
 		}
 	}
 

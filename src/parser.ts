@@ -5,6 +5,7 @@ import {
 	DefaultKeyword,
 	ExportKeyword,
 	ImportDeclaration,
+	isArrayTypeNode,
 	isIdentifier,
 	isImportClause,
 	isImportDeclaration,
@@ -38,6 +39,7 @@ import { TypeDeclaration } from "./models/TypeDeclaration";
 import { TypeLiteralDeclaration } from "./models/TypeLiteralDeclaration";
 import { TypeLiteral } from "./models/TypeLiteral";
 import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration";
+import { ArrayType } from "./models/ArrayType";
 
 function createImport(statement: ImportDeclaration, source: string): Import {
 	const named: Array<string> = [];
@@ -162,6 +164,11 @@ export class Parser {
 				declaration,
 				this.resolveType(declaration.type)
 			);
+		} else if (declaration instanceof ArrayTypeDeclaration) {
+			return createResolvedTypeDeclaration(
+				declaration,
+				this.resolveType(declaration.type)
+			);
 		}
 
 		throw new Error(
@@ -198,12 +205,17 @@ export class Parser {
 			L.d(`<isTypeResolved>`, "it's a union type, checking all types");
 			return !type.types.some((type) => !this.isTypeResolved(type));
 		}
+		
+		if (type instanceof ArrayType) {
+			L.d(`<isTypeResolved>`, "it's an array type, checking type of the Array");
+			return this.isTypeResolved(type.arrayType)
+		}
 
 		return true;
 	}
 
 	private resolveType(
-		type: TypeReference | UnionType | TypeLiteral
+		type: TypeReference | UnionType | TypeLiteral | ArrayType
 	): ResolvedType {
 		L.d(`<resolveType> ${type.toString()}`);
 		if (type instanceof TypeReference) {
@@ -212,6 +224,8 @@ export class Parser {
 			return this.resolveUnionType(type);
 		} else if (type instanceof TypeLiteral) {
 			return this.resolveTypeLiteral(type);
+		} else if (type instanceof ArrayType) {
+			return this.resolveArrayType(type);
 		} else {
 			throw new Error(`Type resolving for type ${type} is not implemented.`);
 		}
@@ -279,6 +293,18 @@ export class Parser {
 
 		return type;
 	}
+
+	private resolveArrayType(type: ArrayType): ArrayType {
+		L.d(`<resolveArrayType>`, type.toString())
+		if (this.isTypeResolved(type.arrayType)) {
+			return type
+		} else {
+			const resolvedType = this.resolveType(type.arrayType);
+			// TODO would be better to involve a new ArrayType here
+			type.arrayType = resolvedType
+			return type
+		}
+	}
 }
 
 function createResolvedTypeDeclaration(
@@ -287,6 +313,12 @@ function createResolvedTypeDeclaration(
 ) {
 	if (resolvedType instanceof StringType) {
 		return new StringTypeDeclaration(declaration.getMeta());
+	}
+
+	if (resolvedType instanceof ArrayType) {
+		// TODO ...
+		declaration.type = resolvedType
+		return declaration
 	}
 
 	if (resolvedType instanceof TypeLiteral) {
@@ -336,6 +368,10 @@ class TypeAliasDeclarationFactory {
 			return new NumberTypeDeclaration(meta);
 		}
 
+		if (isArrayTypeNode(statement.type)) {
+			return new ArrayTypeDeclaration(meta, statement.type)
+		}
+
 		if (isTypeReferenceNode(statement.type)) {
 			if (isIdentifier(statement.type.typeName) && statement.type.typeName.text === "Array") {
 				return new ArrayTypeDeclaration(meta, statement.type)
@@ -375,6 +411,10 @@ function isDefaultModifier(modifier: Modifier): modifier is DefaultKeyword {
 export function typeFactory(node: TypeNode) {
 	L.d(`<typeFactory>`, node.kind);
 
+	if (isArrayTypeNode(node)) {
+		return new ArrayType(node);
+	}
+
 	if (isLiteralTypeNode(node)) {
 		return new LiteralType(node);
 	}
@@ -392,6 +432,10 @@ export function typeFactory(node: TypeNode) {
 	}
 
 	if (isTypeReferenceNode(node)) {
+		if (isIdentifier(node.typeName) && node.typeName.text === "Array") {
+			return new ArrayType(node)
+		}
+
 		return new TypeReference(node);
 	}
 

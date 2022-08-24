@@ -1,2 +1,5 @@
-type Arr = Array<string>
-type Arr2 = string[]
+type Obj = {
+	type: Array<string>
+	union: Array<string> | Obj
+}
+type Arr4 = Array<Obj>

@@ -43,12 +43,13 @@ TODO
 [x] - `union types`
 [x] - `type reference inside the same file`
 [x] - `type reference from an import`
+[x] - `Array<TYPE>`
+[x] - `TYPE[] - Array`
 
 ## TODO
 
-[ ] - `Array<TYPE>`
-[ ] - `TYPE[] - Array`
-[ ] - `[string, number]`
 [ ] - `Intersection`
 [ ] - `Pick`
 [ ] - `Omit`
+[ ] - `[string, number]`
+[ ] - Looped types create a loop in the code

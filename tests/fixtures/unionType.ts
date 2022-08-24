@@ -10,3 +10,7 @@ type ImportedBasicUnion = ExportedBasicString | ExportedBasicNumber
 export type ExportedUnionWithImportedTypes = ExportedBasicString | ExportedBasicNumber
 
 type ImportedComplexUnion = ExportedComplexNestedTypeLiteralWithImports | BasicUnion 
+
+type ImportedArrayUnion = Array<string> | { arr: Array<ImportedBasicUnion> }
+
+type ImportedArrayVersionUnion = Array<string> | { arr: ImportedBasicUnion[] }

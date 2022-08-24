@@ -1,4 +1,4 @@
-import { TypeReferenceNode } from "typescript";
+import { ArrayTypeNode, TypeReferenceNode } from "typescript";
 import { DeclarationMeta } from "../parser";
 import { ArrayType } from "./ArrayType";
 import { TypeDeclaration } from "./TypeDeclaration";
@@ -6,7 +6,7 @@ import { TypeDeclaration } from "./TypeDeclaration";
 export class ArrayTypeDeclaration extends TypeDeclaration {
 	public type: ArrayType;
 
-	constructor(meta: DeclarationMeta, node: TypeReferenceNode) {
+	constructor(meta: DeclarationMeta, node: TypeReferenceNode | ArrayTypeNode) {
 		super(meta);
 		this.type = new ArrayType(node);
 	}
