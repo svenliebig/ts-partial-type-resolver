@@ -2,85 +2,43 @@ import { existsSync, readFileSync } from "fs";
 import { parse, resolve } from "path";
 import {
 	createSourceFile,
-	DefaultKeyword,
-	ExportKeyword,
-	ImportDeclaration,
 	isArrayTypeNode,
 	isIdentifier,
-	isImportClause,
 	isImportDeclaration,
-	isImportSpecifier,
+	isIntersectionTypeNode,
 	isLiteralTypeNode,
-	isNamedImports,
-	isStringLiteralLike,
 	isTypeAliasDeclaration,
 	isTypeLiteralNode,
 	isTypeReferenceNode,
 	isUnionTypeNode,
-	KeywordTypeNode,
-	Modifier,
 	ScriptTarget,
-	SyntaxKind,
 	TypeAliasDeclaration,
 	TypeNode,
 } from "typescript";
+import { ArrayType } from "./models/ArrayType";
+import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration";
+import { Import } from "./models/Import";
+import { IntersectionType } from "./models/IntersectionType";
+import { IntersectionTypeDeclaration } from "./models/IntersectionTypeDeclaration";
 import { LiteralType } from "./models/LiteralType";
 import { LiteralTypeDeclaration } from "./models/LiteralTypeDeclaration";
-import { UnionType } from "./models/UnionType";
-import { UnionTypeDeclaration } from "./models/UnionTypeDeclaration";
 import { NumberType } from "./models/NumberType";
 import { NumberTypeDeclaration } from "./models/NumberTypeDeclaration";
 import { StringType } from "./models/StringType";
 import { StringTypeDeclaration } from "./models/StringTypeDeclaration";
+import { TypeDeclaration } from "./models/TypeDeclaration";
+import { TypeLiteral } from "./models/TypeLiteral";
+import { TypeLiteralDeclaration } from "./models/TypeLiteralDeclaration";
 import { TypeReference } from "./models/TypeReference";
 import { TypeReferenceDeclaration } from "./models/TypeReferenceDeclaration";
+import { UnionType } from "./models/UnionType";
+import { UnionTypeDeclaration } from "./models/UnionTypeDeclaration";
+import { importFactory } from "./utils/importFactory";
+import { isDefaultModifier } from "./utils/isDefaultModifier";
+import { isExportModifier } from "./utils/isExportModifier";
+import { isNumberKeywordTypeNode } from "./utils/isNumberKeywordTypeNode";
+import { isStringKeywordTypeNode } from "./utils/isStringKeywordTypeNode";
 import { L } from "./utils/logger";
-import { TypeDeclaration } from "./models/TypeDeclaration";
-import { TypeLiteralDeclaration } from "./models/TypeLiteralDeclaration";
-import { TypeLiteral } from "./models/TypeLiteral";
-import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration";
-import { ArrayType } from "./models/ArrayType";
-
-function createImport(statement: ImportDeclaration, source: string): Import {
-	const named: Array<string> = [];
-	const defau: string | null = null;
-
-	if (statement.importClause && isImportClause(statement.importClause)) {
-		if (
-			statement.importClause.namedBindings &&
-			isNamedImports(statement.importClause.namedBindings)
-		) {
-			statement.importClause.namedBindings.elements.forEach((element) => {
-				if (isImportSpecifier(element)) {
-					return named.push(element.name.text);
-				}
-
-				throw new Error(`Unknown NamedImport element: ${element}`);
-			});
-		}
-	}
-
-	if (isStringLiteralLike(statement.moduleSpecifier)) {
-		return {
-			source,
-			from: statement.moduleSpecifier.text,
-			named,
-			default: defau,
-		};
-	}
-
-	throw new Error(
-		`Unknown ModulesSpecifier kind: ${statement.moduleSpecifier.kind}`
-	);
-}
-type Import = {
-	/** the path of the file that contains the import declaration. */
-	source: string;
-	/** the relative path to the target file of the import. */
-	from: string;
-	named: Array<string>;
-	default: string | null;
-};
 
 // TODO allow custom fileResolver for things like VS Code extensions
 export class Parser {
@@ -97,7 +55,7 @@ export class Parser {
 
 		file.statements.forEach((statement) => {
 			if (isImportDeclaration(statement)) {
-				this.imports.push(createImport(statement, path));
+				this.imports.push(importFactory(statement, path));
 			}
 
 			if (isLiteralTypeNode(statement)) {
@@ -136,46 +94,9 @@ export class Parser {
 		throw new Error(`Could not resolve import: ${imported.from}`);
 	}
 
-	resolve(name: string) {
-		L.d(`<resolve>`, name)
-
-		const declaration = this.types.find((type) => type.identifier === name);
-
-		if (!declaration) {
-			throw new Error(
-				`Could not find any type declaration with the name: ${name}. Available type declarations are: ${this.types
-					.map((type) => type.identifier)
-					.join(" ,")}.`
-			);
-		}
-
-		if (declaration instanceof TypeReferenceDeclaration) {
-			return createResolvedTypeDeclaration(
-				declaration,
-				this.resolveType(declaration.type)
-			);
-		} else if (declaration instanceof UnionTypeDeclaration) {
-			return createResolvedTypeDeclaration(
-				declaration,
-				this.resolveType(declaration.type)
-			);
-		} else if (declaration instanceof TypeLiteralDeclaration) {
-			return createResolvedTypeDeclaration(
-				declaration,
-				this.resolveType(declaration.type)
-			);
-		} else if (declaration instanceof ArrayTypeDeclaration) {
-			return createResolvedTypeDeclaration(
-				declaration,
-				this.resolveType(declaration.type)
-			);
-		}
-
-		throw new Error(
-			`Could not resolve declaration for: ${declaration.identifier}.`
-		);
-	}
-
+	/**
+	 * Checks if a the requested type exists and is resolved.
+	 */
 	public isResolved(identifier: string): boolean {
 		const declaration = this.getTypeDeclaration(identifier);
 
@@ -188,9 +109,12 @@ export class Parser {
 
 	private isTypeResolved(type: Types): type is ResolvedType {
 		L.d(`<isTypeResolved>`, type.toString());
-		
+
 		if (type instanceof TypeReference && !type.isPrimitive()) {
-			L.d(`<isTypeResolved>`, "it's a type reference and not primitive, return false");
+			L.d(
+				`<isTypeResolved>`,
+				"it's a type reference and not primitive, return false"
+			);
 			return false;
 		}
 
@@ -198,29 +122,64 @@ export class Parser {
 			L.d(`<isTypeResolved>`, "it's a type literal, checking all properties");
 			return !Array.from(type.properties.values()).some(
 				(property) => !this.isTypeResolved(property)
-				);
+			);
 		}
-		
+
 		if (type instanceof UnionType) {
 			L.d(`<isTypeResolved>`, "it's a union type, checking all types");
 			return !type.types.some((type) => !this.isTypeResolved(type));
 		}
-		
+
+		if (type instanceof IntersectionType) {
+			L.d(`<isTypeResolved>`, "it's an intersection type, checking all types");
+			return !type.types.some((type) => !this.isTypeResolved(type));
+		}
+
 		if (type instanceof ArrayType) {
 			L.d(`<isTypeResolved>`, "it's an array type, checking type of the Array");
-			return this.isTypeResolved(type.arrayType)
+			return this.isTypeResolved(type.arrayType);
 		}
+
+		// TODO maybe explicitly use the instaceof of other types here, to prevent
+		// false positive fallthroughs here
 
 		return true;
 	}
 
+	public resolve(name: string) {
+		L.d(`<resolve>`, name);
+
+		const declaration = this.types.find((type) => type.identifier === name);
+
+		if (!declaration) {
+			throw new Error(
+				`Could not find any type declaration with the name: ${name}. Available type declarations are: ${this.types
+					.map((type) => type.identifier)
+					.join(" ,")}.`
+			);
+		}
+
+		if (isInstanceOfUnresolvedClass(declaration)) {
+			return createResolvedTypeDeclaration(
+				declaration,
+				this.resolveType(declaration.type)
+			);
+		}
+
+		throw new Error(
+			`Could not resolve declaration for: ${declaration.identifier}.`
+		);
+	}
+
 	private resolveType(
-		type: TypeReference | UnionType | TypeLiteral | ArrayType
+		type: TypeReference | UnionType | TypeLiteral | ArrayType | IntersectionType
 	): ResolvedType {
 		L.d(`<resolveType> ${type.toString()}`);
 		if (type instanceof TypeReference) {
 			return this.resolveTypeReference(type);
 		} else if (type instanceof UnionType) {
+			return this.resolveUnionType(type);
+		} else if (type instanceof IntersectionType) {
 			return this.resolveUnionType(type);
 		} else if (type instanceof TypeLiteral) {
 			return this.resolveTypeLiteral(type);
@@ -252,17 +211,17 @@ export class Parser {
 		}
 
 		const possibleImport = this.getImport(type.identifier);
-		
+
 		if (possibleImport) {
 			L.d(`<resolveTypeReference>`, "it's a possible import");
 			this.resolveImport(possibleImport);
 			return this.resolveTypeReference(type);
 		}
-		
+
 		throw new Error(`Could not resolve type: ${type.identifier}`);
 	}
-	
-	private resolveUnionType(type: UnionType): UnionType {
+
+	private resolveUnionType<T extends UnionType | IntersectionType>(type: T): T {
 		L.d(`<resolveUnionType>`, type.toString());
 		const types = type.types;
 
@@ -278,14 +237,17 @@ export class Parser {
 	}
 
 	private resolveTypeLiteral(type: TypeLiteral): TypeLiteral {
-		L.d(`<resolveTypeLiteral>`, type.toString())
+		L.d(`<resolveTypeLiteral>`, type.toString());
 		const keys = type.properties.keys();
-		
+
 		for (const key of keys) {
 			const propertyTyp: Types = type.properties.get(key) as Types;
-			
+
 			if (!this.isTypeResolved(propertyTyp)) {
-				L.d(`<resolveTypeLiteral>`, `property: ${propertyTyp} is not resolved.`)
+				L.d(
+					`<resolveTypeLiteral>`,
+					`property: ${propertyTyp} is not resolved.`
+				);
 				const resolvedType = this.resolveType(propertyTyp);
 				type.properties.set(key, resolvedType);
 			}
@@ -295,14 +257,14 @@ export class Parser {
 	}
 
 	private resolveArrayType(type: ArrayType): ArrayType {
-		L.d(`<resolveArrayType>`, type.toString())
+		L.d(`<resolveArrayType>`, type.toString());
 		if (this.isTypeResolved(type.arrayType)) {
-			return type
+			return type;
 		} else {
 			const resolvedType = this.resolveType(type.arrayType);
 			// TODO would be better to involve a new ArrayType here
-			type.arrayType = resolvedType
-			return type
+			type.arrayType = resolvedType;
+			return type;
 		}
 	}
 }
@@ -317,8 +279,8 @@ function createResolvedTypeDeclaration(
 
 	if (resolvedType instanceof ArrayType) {
 		// TODO ...
-		declaration.type = resolvedType
-		return declaration
+		declaration.type = resolvedType;
+		return declaration;
 	}
 
 	if (resolvedType instanceof TypeLiteral) {
@@ -328,6 +290,12 @@ function createResolvedTypeDeclaration(
 	}
 
 	if (resolvedType instanceof UnionType) {
+		// TODO remove the typescript node from the TypeLiteral class to prevent this
+		declaration.type = resolvedType;
+		return declaration;
+	}
+
+	if (resolvedType instanceof IntersectionType) {
 		// TODO remove the typescript node from the TypeLiteral class to prevent this
 		declaration.type = resolvedType;
 		return declaration;
@@ -344,8 +312,12 @@ export type DeclarationMeta = {
 
 class TypeAliasDeclarationFactory {
 	public static create(statement: TypeAliasDeclaration) {
-		L.d(`<TypeAliasDeclarationFactory.create>`, statement.kind, statement.type.kind)
-		
+		L.d(
+			`<TypeAliasDeclarationFactory.create>`,
+			statement.kind,
+			statement.type.kind
+		);
+
 		const meta: DeclarationMeta = {
 			identifier: statement.name.escapedText as string,
 			exported: statement.modifiers?.some(isExportModifier) ?? false,
@@ -360,6 +332,10 @@ class TypeAliasDeclarationFactory {
 			return new UnionTypeDeclaration(meta, statement.type);
 		}
 
+		if (isIntersectionTypeNode(statement.type)) {
+			return new IntersectionTypeDeclaration(meta, statement.type);
+		}
+
 		if (isStringKeywordTypeNode(statement.type)) {
 			return new StringTypeDeclaration(meta);
 		}
@@ -369,12 +345,15 @@ class TypeAliasDeclarationFactory {
 		}
 
 		if (isArrayTypeNode(statement.type)) {
-			return new ArrayTypeDeclaration(meta, statement.type)
+			return new ArrayTypeDeclaration(meta, statement.type);
 		}
 
 		if (isTypeReferenceNode(statement.type)) {
-			if (isIdentifier(statement.type.typeName) && statement.type.typeName.text === "Array") {
-				return new ArrayTypeDeclaration(meta, statement.type)
+			if (
+				isIdentifier(statement.type.typeName) &&
+				statement.type.typeName.text === "Array"
+			) {
+				return new ArrayTypeDeclaration(meta, statement.type);
 			}
 
 			return new TypeReferenceDeclaration(meta, statement.type);
@@ -386,26 +365,6 @@ class TypeAliasDeclarationFactory {
 
 		throw new Error(`Unknown TypeNode kind: ${statement.type.kind}`);
 	}
-}
-
-function isStringKeywordTypeNode(
-	node: TypeNode
-): node is KeywordTypeNode<SyntaxKind.StringKeyword> {
-	return node.kind === SyntaxKind.StringKeyword;
-}
-
-function isNumberKeywordTypeNode(
-	node: TypeNode
-): node is KeywordTypeNode<SyntaxKind.NumberKeyword> {
-	return node.kind === SyntaxKind.NumberKeyword;
-}
-
-function isExportModifier(modifier: Modifier): modifier is ExportKeyword {
-	return modifier.kind === SyntaxKind.ExportKeyword;
-}
-
-function isDefaultModifier(modifier: Modifier): modifier is DefaultKeyword {
-	return modifier.kind === SyntaxKind.DefaultKeyword;
 }
 
 export function typeFactory(node: TypeNode) {
@@ -423,6 +382,10 @@ export function typeFactory(node: TypeNode) {
 		return new UnionType(node);
 	}
 
+	if (isIntersectionTypeNode(node)) {
+		return new IntersectionType(node);
+	}
+
 	if (isStringKeywordTypeNode(node)) {
 		return new StringType();
 	}
@@ -433,7 +396,7 @@ export function typeFactory(node: TypeNode) {
 
 	if (isTypeReferenceNode(node)) {
 		if (isIdentifier(node.typeName) && node.typeName.text === "Array") {
-			return new ArrayType(node)
+			return new ArrayType(node);
 		}
 
 		return new TypeReference(node);
@@ -449,9 +412,31 @@ export function typeFactory(node: TypeNode) {
 export type Types =
 	| LiteralType
 	| UnionType
+	| IntersectionType
+	| ArrayType
 	| StringType
 	| TypeReference
 	| TypeLiteral;
 
+const POSSIBLY_URESOLVED_CLASS = [
+	TypeReferenceDeclaration,
+	UnionTypeDeclaration,
+	TypeLiteralDeclaration,
+	ArrayTypeDeclaration,
+	IntersectionTypeDeclaration,
+];
+
+function isInstanceOfUnresolvedClass(
+	value: unknown
+): value is PossiblyUnresolvedDeclaration {
+	return POSSIBLY_URESOLVED_CLASS.some((clazz) => value instanceof clazz);
+}
+
+type PossiblyUnresolvedDeclaration =
+	| TypeReferenceDeclaration
+	| UnionTypeDeclaration
+	| TypeLiteralDeclaration
+	| ArrayTypeDeclaration
+	| IntersectionTypeDeclaration;
 
 type ResolvedType = Exclude<Types, TypeReference>;

@@ -22,7 +22,7 @@ export class ArrayType {
 		}
 	}
 
-	public toString() {
+	public toString(): string {
 		return `Array<${this.arrayType.toString()}>`
 	}
 }

@@ -45,15 +45,18 @@ TODO
 - [x] - `type reference from an import`
 - [x] - `Array<TYPE>`
 - [x] - `TYPE[] - Array`
+- [x] - `Intersection`
 
 ## TODO
 
-- [ ] - `Intersection`
+- [ ] - `Parenthesiszed Types`
+- [ ] - `Boolean`
 - [ ] - `Interface`
 - [ ] - `Enums`
 - [ ] - `Extends`
 - [ ] - `Pick`
 - [ ] - `void`
+- [ ] - `library imports`
 - [ ] - `null`
 - [ ] - `undefined`
 - [ ] - `? optional properties`
