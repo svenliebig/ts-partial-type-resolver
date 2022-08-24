@@ -5,8 +5,8 @@ import { Types, typeFactory } from "../parser";
 export class UnionType {
 	public types: Array<Types>;
 
-	constructor(type: UnionTypeNode) {
-		this.types = type.types.map(typeFactory);
+	constructor(node: UnionTypeNode) {
+		this.types = node.types.map(typeFactory);
 	}
 
 	toString(): string {

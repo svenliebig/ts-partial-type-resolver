@@ -5,9 +5,9 @@ import { TypeReference } from "./TypeReference";
 
 export class TypeReferenceDeclaration extends TypeDeclaration {
 	public type: TypeReference;
-	constructor(meta: DeclarationMeta, type: TypeReferenceNode) {
+	constructor(meta: DeclarationMeta, node: TypeReferenceNode) {
 		super(meta);
-		this.type = new TypeReference(type);
+		this.type = new TypeReference(node);
 	}
 
 	typeToString(): string {
