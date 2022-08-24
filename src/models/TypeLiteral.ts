@@ -24,6 +24,6 @@ export class TypeLiteral {
 	}
 
 	toString(): string {
-		return ["{", ...Array.from(this.properties.keys()).map(key => `\t${key}: ${this.properties.get(key)?.toString()}`), "}"].join("\n")
+		return ["{", Array.from(this.properties.keys()).map(key => `${key}: ${this.properties.get(key)?.toString()}`).join(", "), "}"].join(" ")
 	}
 }

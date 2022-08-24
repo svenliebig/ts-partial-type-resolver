@@ -28,3 +28,24 @@ type Person = {
 	name: string;
 };
 ```
+
+## Usage
+
+TODO
+
+## Supported
+
+[x] - `string`
+[x] - `number`
+[x] - `Date`
+[x] - `string & number literal`
+[x] - `objects (type literal)`
+[x] - `union types`
+[x] - `type reference inside the same file`
+[x] - `type reference from an import`
+
+## TODO
+
+[ ] - `Array`
+[ ] - `Intersection`
+[ ] - `Pick`

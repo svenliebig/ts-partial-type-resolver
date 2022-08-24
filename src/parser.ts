@@ -181,18 +181,19 @@ export class Parser {
 		L.d(`<isTypeResolved>`, type.toString());
 		
 		if (type instanceof TypeReference && !type.isPrimitive()) {
-			L.d(`<isTypeResolved>`, "is instance of TypeReference and not primitive, return false");
+			L.d(`<isTypeResolved>`, "it's a type reference and not primitive, return false");
 			return false;
 		}
 
 		if (type instanceof TypeLiteral) {
+			L.d(`<isTypeResolved>`, "it's a type literal, checking all properties");
 			return !Array.from(type.properties.values()).some(
 				(property) => !this.isTypeResolved(property)
 				);
 		}
 		
 		if (type instanceof UnionType) {
-			L.d(`<isTypeResolved>`, "is a union type, checking all types");
+			L.d(`<isTypeResolved>`, "it's a union type, checking all types");
 			return !type.types.some((type) => !this.isTypeResolved(type));
 		}
 
