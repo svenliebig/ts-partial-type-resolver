@@ -47,5 +47,7 @@ TODO
 ## TODO
 
 [ ] - `Array`
+[ ] - `[string, number]`
 [ ] - `Intersection`
 [ ] - `Pick`
+[ ] - `Omit`

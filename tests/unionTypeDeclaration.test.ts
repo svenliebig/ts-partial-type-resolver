@@ -55,3 +55,8 @@ test('toString for ImportedBasicUnion after resolving', t => {
 	const str = parser.resolve("ImportedBasicUnion")?.toString();
 	t.is(str, "type ImportedBasicUnion = string | number")
 })
+
+test('toString for ImportedComplexUnion after resolving', t => {
+	const str = parser.resolve("ImportedComplexUnion")?.toString();
+	t.is(str, "type ImportedComplexUnion = { union: string | number, nested: { object: { str: string, num: number } } } | string | number")
+})

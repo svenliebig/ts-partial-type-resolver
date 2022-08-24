@@ -35,3 +35,10 @@ type ComplexNestedTypeLiteralWithImports = {
 		object: BasicTypeLiteral
 	}
 }
+
+export type ExportedComplexNestedTypeLiteralWithImports = {
+	union: ExportedUnionWithImportedTypes
+	nested: {
+		object: BasicTypeLiteral
+	}
+}
