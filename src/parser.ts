@@ -101,7 +101,7 @@ export class Parser {
 
 			if (isTypeAliasDeclaration(statement)) {
 				const declaration = TypeAliasDeclarationFactory.create(statement);
-				L.d(`parser > push declaration > ${declaration.toString()}`);
+				L.d(`<parserFile>`, "push declaration", declaration.toString());
 				return this.types.push(declaration);
 			}
 		});
@@ -133,6 +133,8 @@ export class Parser {
 	}
 
 	resolve(name: string) {
+		L.d(`<resolve>`, name)
+
 		const declaration = this.types.find((type) => type.identifier === name);
 
 		if (!declaration) {
@@ -146,7 +148,7 @@ export class Parser {
 		if (declaration instanceof TypeReferenceDeclaration) {
 			return createResolvedTypeDeclaration(
 				declaration,
-				this.resolveTypeReference(declaration.type)
+				this.resolveType(declaration.type)
 			);
 		} else if (declaration instanceof UnionTypeDeclaration) {
 			return createResolvedTypeDeclaration(
@@ -156,7 +158,7 @@ export class Parser {
 		} else if (declaration instanceof TypeLiteralDeclaration) {
 			return createResolvedTypeDeclaration(
 				declaration,
-				this.resolveTypeLiteral(declaration.type)
+				this.resolveType(declaration.type)
 			);
 		}
 
@@ -176,19 +178,21 @@ export class Parser {
 	}
 
 	private isTypeResolved(type: Types): type is ResolvedType {
-		L.d(`isTypeResolved: ${type.toString()}`);
-
+		L.d(`<isTypeResolved>`, type.toString());
+		
 		if (type instanceof TypeReference && !type.isPrimitive()) {
+			L.d(`<isTypeResolved>`, "is instance of TypeReference and not primitive, return false");
 			return false;
 		}
 
 		if (type instanceof TypeLiteral) {
 			return !Array.from(type.properties.values()).some(
 				(property) => !this.isTypeResolved(property)
-			);
+				);
 		}
-
+		
 		if (type instanceof UnionType) {
+			L.d(`<isTypeResolved>`, "is a union type, checking all types");
 			return !type.types.some((type) => !this.isTypeResolved(type));
 		}
 
@@ -257,13 +261,15 @@ export class Parser {
 	}
 
 	private resolveTypeLiteral(type: TypeLiteral): TypeLiteral {
+		L.d(`<resolveTypeLiteral>`, type.toString())
 		const keys = type.properties.keys();
-
+		
 		for (const key of keys) {
 			const propertyTyp: Types = type.properties.get(key) as Types;
-
+			
 			if (!this.isTypeResolved(propertyTyp)) {
-				const resolvedType = this.resolveTypeReference(propertyTyp);
+				L.d(`<resolveTypeLiteral>`, `property: ${propertyTyp} is not resolved.`)
+				const resolvedType = this.resolveType(propertyTyp);
 				type.properties.set(key, resolvedType);
 			}
 		}
@@ -358,7 +364,8 @@ function isDefaultModifier(modifier: Modifier): modifier is DefaultKeyword {
 }
 
 export function typeFactory(node: TypeNode) {
-	L.d(`typeFactory: ${node.kind}`);
+	L.d(`<typeFactory>`, node.kind);
+
 	if (isLiteralTypeNode(node)) {
 		return new LiteralType(node);
 	}
@@ -392,4 +399,6 @@ export type Types =
 	| StringType
 	| TypeReference
 	| TypeLiteral;
+
+
 type ResolvedType = Exclude<Types, TypeReference>;

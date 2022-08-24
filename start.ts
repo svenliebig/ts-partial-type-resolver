@@ -8,5 +8,4 @@ const parser = new Parser(resolve(__dirname, "tests", "fixtures", "example.ts"))
 console.log("is real date resolved:", parser.isResolved("RealDate"))
 console.log("is big union resolved:", parser.isResolved("BigUnion"))
 
-L.on()
-console.log(parser.resolve("BigUnion").toString())
+console.log(parser.resolve("Westeros").toString())
