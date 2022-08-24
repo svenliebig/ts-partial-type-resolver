@@ -46,7 +46,8 @@ TODO
 
 ## TODO
 
-[ ] - `Array`
+[ ] - `Array<TYPE>`
+[ ] - `TYPE[] - Array`
 [ ] - `[string, number]`
 [ ] - `Intersection`
 [ ] - `Pick`

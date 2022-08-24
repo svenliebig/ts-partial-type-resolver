@@ -1,0 +1,1 @@
+type BasicArray = Array<string>

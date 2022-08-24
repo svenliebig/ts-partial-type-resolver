@@ -5,6 +5,7 @@ import {
 	DefaultKeyword,
 	ExportKeyword,
 	ImportDeclaration,
+	isIdentifier,
 	isImportClause,
 	isImportDeclaration,
 	isImportSpecifier,
@@ -36,6 +37,7 @@ import { L } from "./utils/logger";
 import { TypeDeclaration } from "./models/TypeDeclaration";
 import { TypeLiteralDeclaration } from "./models/TypeLiteralDeclaration";
 import { TypeLiteral } from "./models/TypeLiteral";
+import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration";
 
 function createImport(statement: ImportDeclaration, source: string): Import {
 	const named: Array<string> = [];
@@ -310,6 +312,8 @@ export type DeclarationMeta = {
 
 class TypeAliasDeclarationFactory {
 	public static create(statement: TypeAliasDeclaration) {
+		L.d(`<TypeAliasDeclarationFactory.create>`, statement.kind, statement.type.kind)
+		
 		const meta: DeclarationMeta = {
 			identifier: statement.name.escapedText as string,
 			exported: statement.modifiers?.some(isExportModifier) ?? false,
@@ -333,6 +337,10 @@ class TypeAliasDeclarationFactory {
 		}
 
 		if (isTypeReferenceNode(statement.type)) {
+			if (isIdentifier(statement.type.typeName) && statement.type.typeName.text === "Array") {
+				return new ArrayTypeDeclaration(meta, statement.type)
+			}
+
 			return new TypeReferenceDeclaration(meta, statement.type);
 		}
 
