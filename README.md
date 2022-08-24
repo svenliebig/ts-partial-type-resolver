@@ -35,21 +35,28 @@ TODO
 
 ## Supported
 
-[x] - `string`
-[x] - `number`
-[x] - `Date`
-[x] - `string & number literal`
-[x] - `objects (type literal)`
-[x] - `union types`
-[x] - `type reference inside the same file`
-[x] - `type reference from an import`
-[x] - `Array<TYPE>`
-[x] - `TYPE[] - Array`
+- [x] - `string`
+- [x] - `number`
+- [x] - `Date`
+- [x] - `string & number literal`
+- [x] - `objects (type literal)`
+- [x] - `union types`
+- [x] - `type reference inside the same file`
+- [x] - `type reference from an import`
+- [x] - `Array<TYPE>`
+- [x] - `TYPE[] - Array`
 
 ## TODO
 
-[ ] - `Intersection`
-[ ] - `Pick`
-[ ] - `Omit`
-[ ] - `[string, number]`
-[ ] - Looped types create a loop in the code
+- [ ] - `Intersection`
+- [ ] - `Interface`
+- [ ] - `Enums`
+- [ ] - `Extends`
+- [ ] - `Pick`
+- [ ] - `void`
+- [ ] - `null`
+- [ ] - `undefined`
+- [ ] - `? optional properties`
+- [ ] - `Omit`
+- [ ] - `[string, number]`
+- [ ] - Looped types create a loop in the code
