@@ -1,5 +1,7 @@
 # TypeScript Partial Type Resolver
 
+[![Coverage Status](https://coveralls.io/repos/github/svenliebig/ts-partial-type-resolver/badge.svg?branch=master)](https://coveralls.io/github/svenliebig/ts-partial-type-resolver?branch=master)
+
 Under Construction 🏗
 
 But feel free to look around!
