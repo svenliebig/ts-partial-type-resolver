@@ -7,7 +7,7 @@ export class EnumTypeDeclaration extends TypeDeclaration {
 
 	constructor(meta: DeclarationMeta, members: EnumMembers) {
 		super(meta);
-		this.type = new EnumType(members);
+		this.type = new EnumType(meta.identifier, members);
 	}
 
 	typeToString(): string {

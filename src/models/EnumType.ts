@@ -2,14 +2,15 @@
 export type EnumMembers = Map<string, string | number>
 
 export class EnumType {
+	public name: string
 	public members: EnumMembers
 
-	constructor(members: EnumMembers) {
-		// TODO
-		this.members = new Map()
+	constructor(name: string, members: EnumMembers) {
+		this.name = name
+		this.members = members
 	}
 
 	public toString(): string {
-		return ""
+		return this.name
 	}
 }

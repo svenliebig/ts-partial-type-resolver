@@ -1,3 +1,4 @@
+// TODO make this a class
 export type Import = {
 	/** the path of the file that contains the import declaration. */
 	source: string;
