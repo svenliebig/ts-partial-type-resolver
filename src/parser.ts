@@ -40,13 +40,24 @@ import { isNumberKeywordTypeNode } from "./utils/isNumberKeywordTypeNode"
 import { isStringKeywordTypeNode } from "./utils/isStringKeywordTypeNode"
 import { L } from "./utils/logger"
 
+type ParserConfig = {
+	breakOnUnresolvedImports: boolean
+	unknownTypeForUnresolved: boolean
+
+	/**
+	 * Defines if imports from libraries, that are located in the node_modules directory, should be resolved.
+	 */
+	resolveLibraries: boolean
+}
+
 // TODO allow custom fileResolver for things like VS Code extensions
 export class Parser {
 	private imports: Array<Import> = []
 	private types: Array<TypeDeclaration> = []
-	private config = {
+	private config: ParserConfig = {
 		breakOnUnresolvedImports: false,
 		unknownTypeForUnresolved: false,
+		resolveLibraries: false,
 	}
 
 	constructor(path: string) {
@@ -97,7 +108,6 @@ export class Parser {
 	// - parse
 	private resolveImport(imported: Import) {
 		const path = imported.resolve()
-
 		this.parseFile(path)
 		this.imports.splice(this.imports.indexOf(imported), 1)
 	}
@@ -374,10 +384,16 @@ export type Types =
 	| UnknownType
 	| UnionType
 
-const POSSIBLY_URESOLVED_CLASS = [TypeReferenceDeclaration, UnionTypeDeclaration, TypeLiteralDeclaration, ArrayTypeDeclaration, IntersectionTypeDeclaration]
+const POSSIBLY_URESOLVED_DECLARATION = [
+	TypeReferenceDeclaration,
+	UnionTypeDeclaration,
+	TypeLiteralDeclaration,
+	ArrayTypeDeclaration,
+	IntersectionTypeDeclaration,
+]
 
 function isInstanceOfUnresolvedClass(value: unknown): value is PossiblyUnresolvedDeclaration {
-	return POSSIBLY_URESOLVED_CLASS.some((clazz) => value instanceof clazz)
+	return POSSIBLY_URESOLVED_DECLARATION.some((clazz) => value instanceof clazz)
 }
 
 type PossiblyUnresolvedDeclaration =

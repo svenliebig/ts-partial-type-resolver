@@ -1,21 +1,33 @@
-let mode: "on" | "off" = 'off'
+let mode: "on" | "off" = "off"
 let filter: null | string = null
-export class L {
-	static off() {
+export const L = {
+	off() {
 		mode = "off"
-	}
+	},
 
-	static on() {
+	on() {
 		mode = "on"
-	}
+	},
 
-	static filter(value: string | null) {
+	/**
+	 * Only display messages that `String.includes` that `value`.
+	 * If you use a filter, you will lose the file and line numbers associated to the log.
+	 */
+	filter(value: string | null) {
 		filter = value
-	}
+	},
 
-	static d(...args: Array<any>) {
-		if (mode === "on" && (filter === null || args.join("").toLocaleLowerCase().includes(filter.toLocaleLowerCase()))) {
-			console.log(...args)
-		}
-	}
+	d: console.log.bind(console),
 }
+
+Object.defineProperty(L, "d", {
+	get: () => {
+		if (mode === "on") {
+			if (filter) {
+				return (...args: Array<any>) => console.log.apply(console, args)
+			}
+			return console.log.bind(console)
+		}
+		return function () {}
+	},
+})
