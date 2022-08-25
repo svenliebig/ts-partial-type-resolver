@@ -1,19 +1,5 @@
 import { readFileSync } from "fs"
-import {
-	createSourceFile,
-	isArrayTypeNode,
-	isEnumDeclaration,
-	isIdentifier,
-	isImportDeclaration,
-	isIntersectionTypeNode,
-	isLiteralTypeNode,
-	isTypeAliasDeclaration,
-	isTypeLiteralNode,
-	isTypeReferenceNode,
-	isUnionTypeNode,
-	ScriptTarget,
-	TypeNode,
-} from "typescript"
+import { createSourceFile, isEnumDeclaration, isImportDeclaration, isLiteralTypeNode, isTypeAliasDeclaration, ScriptTarget } from "typescript"
 import { ArrayType } from "./models/ArrayType"
 import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration"
 import { BooleanType } from "./models/BooleanType"
@@ -35,32 +21,61 @@ import { UnionTypeDeclaration } from "./models/UnionTypeDeclaration"
 import { UnknownType } from "./models/UnknownType"
 import { DeclarationFactory } from "./utils/DeclarationFactory"
 import { importFactory } from "./utils/importFactory"
-import { isBooleanKeywordTypeNode } from "./utils/isBooleanKeywordTypeNode"
-import { isNumberKeywordTypeNode } from "./utils/isNumberKeywordTypeNode"
-import { isStringKeywordTypeNode } from "./utils/isStringKeywordTypeNode"
 import { L } from "./utils/logger"
 
 type ParserConfig = {
-	breakOnUnresolvedImports: boolean
-	unknownTypeForUnresolved: boolean
+	breakOnUnresolvedImports?: boolean
+	unknownTypeForUnresolved?: boolean
 
 	/**
 	 * Defines if imports from libraries, that are located in the node_modules directory, should be resolved.
 	 */
-	resolveLibraries: boolean
+	resolveLibraries?: boolean
+
+	/**
+	 * Identifier that should not be resolved.
+	 *
+	 * Example:
+	 *
+	 * ```ts
+	 * type DateString = string
+	 * type ListOfDates = Array<DateString>
+	 * ```
+	 *
+	 * would normally:
+	 *
+	 * ```ts
+	 * resolve("ListOfDates") // into type ListOfDates = Array<string>
+	 * ```
+	 *
+	 * However, if `"DateString"` is added to this property, it will:
+	 *
+	 * ```ts
+	 * resolve("ListOfDates") // into type ListOfDates = Array<DateString>
+	 * ```
+	 */
+	doNotResolve?: Array<string>
+}
+
+const DEFAULT_CONFIG: Required<ParserConfig> = {
+	breakOnUnresolvedImports: false,
+	unknownTypeForUnresolved: false,
+	resolveLibraries: false,
+	doNotResolve: [],
 }
 
 // TODO allow custom fileResolver for things like VS Code extensions
 export class Parser {
 	private imports: Array<Import> = []
-	private types: Array<TypeDeclaration> = []
-	private config: ParserConfig = {
-		breakOnUnresolvedImports: false,
-		unknownTypeForUnresolved: false,
-		resolveLibraries: false,
-	}
+	private declarations: Array<TypeDeclaration> = []
+	private config: Required<ParserConfig>
 
-	constructor(path: string) {
+	constructor(path: string, config: ParserConfig = {}) {
+		this.config = {
+			...DEFAULT_CONFIG,
+			...config,
+		}
+
 		this.parseFile(path)
 	}
 
@@ -82,20 +97,20 @@ export class Parser {
 				const declaration = DeclarationFactory.createEnumDeclaration(statement)
 				// TODO refactor probably...
 				L.d(`<parserFile>`, "push declaration", declaration.toString())
-				return this.types.push(declaration)
+				return this.declarations.push(declaration)
 			}
 
 			if (isTypeAliasDeclaration(statement)) {
 				const declaration = DeclarationFactory.createTypeDeclaration(statement)
 				// TODO refactor probably...
 				L.d(`<parserFile>`, "push declaration", declaration.toString())
-				return this.types.push(declaration)
+				return this.declarations.push(declaration)
 			}
 		})
 	}
 
-	getTypeDeclaration(name: string) {
-		return this.types.find((type) => type.identifier === name)
+	public getDeclaration(name: string) {
+		return this.declarations.find((type) => type.identifier === name)
 	}
 
 	private getImport(name: string) {
@@ -116,7 +131,7 @@ export class Parser {
 	 * Checks if a the requested type exists and is resolved.
 	 */
 	public isResolved(identifier: string): boolean {
-		const declaration = this.getTypeDeclaration(identifier)
+		const declaration = this.getDeclaration(identifier)
 
 		if (declaration) {
 			return this.isTypeResolved(declaration.type)
@@ -128,7 +143,7 @@ export class Parser {
 	private isTypeResolved(type: Types): type is ResolvedType {
 		L.d(`<isTypeResolved>`, type.toString())
 
-		if (type instanceof TypeReference && !type.isPrimitive()) {
+		if (type instanceof TypeReference && !type.isPrimitive() && !this.config.doNotResolve.includes(type.identifier)) {
 			L.d(`<isTypeResolved>`, "it's a type reference and not primitive, return false")
 			return false
 		}
@@ -162,16 +177,18 @@ export class Parser {
 	public resolve(name: string) {
 		L.d(`<resolve>`, name)
 
-		const declaration = this.types.find((type) => type.identifier === name)
+		const declaration = this.declarations.find((type) => type.identifier === name)
 
 		if (!declaration) {
 			throw new Error(
-				`Could not find any type declaration with the name: ${name}. Available type declarations are: ${this.types.map((type) => type.identifier).join(" ,")}.`
+				`Could not find any type declaration with the name: ${name}. Available type declarations are: ${this.declarations
+					.map((type) => type.identifier)
+					.join(" ,")}.`
 			)
 		}
 
 		if (isInstanceOfUnresolvedClass(declaration)) {
-			return createResolvedTypeDeclaration(declaration, this.resolveType(declaration.type))
+			return this.createResolvedTypeDeclaration(declaration, this.resolveType(declaration.type))
 		}
 
 		throw new Error(`Could not resolve declaration for: ${declaration.identifier}.`)
@@ -203,7 +220,12 @@ export class Parser {
 			return type
 		}
 
-		const possibleLocalResolvedType = this.getTypeDeclaration(type.identifier)
+		if (this.config.doNotResolve.includes(type.identifier)) {
+			L.d(...lp, "the identifier is part of the doNotResolve configuration")
+			return type
+		}
+
+		const possibleLocalResolvedType = this.getDeclaration(type.identifier)
 
 		if (possibleLocalResolvedType) {
 			L.d(...lp, "it's already in the types")
@@ -284,38 +306,43 @@ export class Parser {
 			return type
 		}
 	}
-}
 
-function createResolvedTypeDeclaration(declaration: TypeDeclaration, resolvedType: ResolvedType) {
-	if (resolvedType instanceof StringType) {
-		return new StringTypeDeclaration(declaration.getMeta())
+	private createResolvedTypeDeclaration(declaration: TypeDeclaration, resolvedType: ResolvedType) {
+		if (resolvedType instanceof StringType) {
+			return new StringTypeDeclaration(declaration.getMeta())
+		}
+
+		if (resolvedType instanceof ArrayType) {
+			// TODO ...
+			declaration.type = resolvedType
+			return declaration
+		}
+
+		if (resolvedType instanceof TypeLiteral) {
+			// TODO remove the typescript node from the TypeLiteral class to prevent this
+			declaration.type = resolvedType
+			return declaration
+		}
+
+		if (resolvedType instanceof UnionType) {
+			// TODO remove the typescript node from the TypeLiteral class to prevent this
+			declaration.type = resolvedType
+			return declaration
+		}
+
+		if (resolvedType instanceof IntersectionType) {
+			// TODO remove the typescript node from the TypeLiteral class to prevent this
+			declaration.type = resolvedType
+			return declaration
+		}
+
+		if (resolvedType instanceof TypeReference && this.config.doNotResolve.includes(resolvedType.identifier)) {
+			declaration.type = resolvedType
+			return declaration
+		}
+
+		throw new Error(`Missing implementation for ${resolvedType}`)
 	}
-
-	if (resolvedType instanceof ArrayType) {
-		// TODO ...
-		declaration.type = resolvedType
-		return declaration
-	}
-
-	if (resolvedType instanceof TypeLiteral) {
-		// TODO remove the typescript node from the TypeLiteral class to prevent this
-		declaration.type = resolvedType
-		return declaration
-	}
-
-	if (resolvedType instanceof UnionType) {
-		// TODO remove the typescript node from the TypeLiteral class to prevent this
-		declaration.type = resolvedType
-		return declaration
-	}
-
-	if (resolvedType instanceof IntersectionType) {
-		// TODO remove the typescript node from the TypeLiteral class to prevent this
-		declaration.type = resolvedType
-		return declaration
-	}
-
-	throw new Error(`Missing implementation for ${resolvedType}`)
 }
 
 // refactor with intellij into DeclarationFactory
@@ -323,52 +350,6 @@ export type DeclarationMeta = {
 	identifier: string
 	exported: boolean
 	default: boolean
-}
-
-export function typeFactory(node: TypeNode) {
-	L.d(`<typeFactory>`, node.kind)
-
-	if (isArrayTypeNode(node)) {
-		return new ArrayType(node)
-	}
-
-	if (isLiteralTypeNode(node)) {
-		return new LiteralType(node)
-	}
-
-	if (isUnionTypeNode(node)) {
-		return new UnionType(node)
-	}
-
-	if (isIntersectionTypeNode(node)) {
-		return new IntersectionType(node)
-	}
-
-	if (isStringKeywordTypeNode(node)) {
-		return new StringType()
-	}
-
-	if (isNumberKeywordTypeNode(node)) {
-		return new NumberType()
-	}
-
-	if (isTypeReferenceNode(node)) {
-		if (isIdentifier(node.typeName) && node.typeName.text === "Array") {
-			return new ArrayType(node)
-		}
-
-		return new TypeReference(node)
-	}
-
-	if (isTypeLiteralNode(node)) {
-		return new TypeLiteral(node)
-	}
-
-	if (isBooleanKeywordTypeNode(node)) {
-		return new BooleanType()
-	}
-
-	throw new Error(`Unknown TypeNode kind: ${node.kind}`)
 }
 
 export type Types =

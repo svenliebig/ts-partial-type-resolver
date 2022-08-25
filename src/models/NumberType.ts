@@ -1,4 +1,5 @@
-
 export class NumberType {
-	toString() { return "number"; }
+	toString() {
+		return "number"
+	}
 }

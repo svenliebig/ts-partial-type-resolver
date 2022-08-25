@@ -10,9 +10,9 @@ This project has it's motiviation from creating mock data. I want to resolve typ
 
 ```ts
 type Person = {
-	address: Address;
-	name: string;
-};
+	address: Address
+	name: string
+}
 ```
 
 Into types like this:
@@ -20,13 +20,13 @@ Into types like this:
 ```ts
 type Person = {
 	address: {
-		street: string;
-		state: string;
-		city: string;
-		postalcode: number;
-	};
-	name: string;
-};
+		street: string
+		state: string
+		city: string
+		postalcode: number
+	}
+	name: string
+}
 ```
 
 ## Usage
@@ -46,19 +46,21 @@ TODO
 - [x] - `Array<TYPE>`
 - [x] - `TYPE[] - Array`
 - [x] - `Intersection`
+- [x] - `Enums`
+- [x] - `null`
+- [x] - Configuration to define types that should not be resolved
 
 ## TODO
 
 - [ ] - `Parenthesiszed Types`
 - [ ] - `Boolean`
 - [ ] - `Interface`
-- [ ] - `Enums`
 - [ ] - `Extends`
 - [ ] - `Pick`
 - [ ] - `void`
 - [ ] - `library imports`
-- [ ] - `null`
 - [ ] - `undefined`
+- [ ] - `function`
 - [ ] - `? optional properties`
 - [ ] - `Omit`
 - [ ] - `[string, number]`
