@@ -2,38 +2,29 @@ import { existsSync, readFileSync } from "fs";
 import { parse, resolve } from "path";
 import {
 	createSourceFile,
-	EnumDeclaration,
-	EnumMember,
-	Identifier,
 	isArrayTypeNode,
 	isEnumDeclaration,
 	isIdentifier,
 	isImportDeclaration,
 	isIntersectionTypeNode,
 	isLiteralTypeNode,
-	isStringLiteral,
 	isTypeAliasDeclaration,
 	isTypeLiteralNode,
 	isTypeReferenceNode,
 	isUnionTypeNode,
 	Node,
-	PropertyName,
 	ScriptTarget,
-	TypeAliasDeclaration,
 	TypeNode,
 } from "typescript";
+import { DeclarationFactory } from "./utils/DeclarationFactory";
 import { ArrayType } from "./models/ArrayType";
 import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration";
 import { BooleanType } from "./models/BooleanType";
-import { EnumMembers } from "./models/EnumType";
-import { EnumTypeDeclaration } from "./models/EnumTypeDeclaration";
 import { Import } from "./models/Import";
 import { IntersectionType } from "./models/IntersectionType";
 import { IntersectionTypeDeclaration } from "./models/IntersectionTypeDeclaration";
 import { LiteralType } from "./models/LiteralType";
-import { LiteralTypeDeclaration } from "./models/LiteralTypeDeclaration";
 import { NumberType } from "./models/NumberType";
-import { NumberTypeDeclaration } from "./models/NumberTypeDeclaration";
 import { StringType } from "./models/StringType";
 import { StringTypeDeclaration } from "./models/StringTypeDeclaration";
 import { TypeDeclaration } from "./models/TypeDeclaration";
@@ -46,11 +37,10 @@ import { UnionTypeDeclaration } from "./models/UnionTypeDeclaration";
 import { UnknownType } from "./models/UnknownType";
 import { importFactory } from "./utils/importFactory";
 import { isBooleanKeywordTypeNode } from "./utils/isBooleanKeywordTypeNode";
-import { isDefaultModifier } from "./utils/isDefaultModifier";
-import { isExportModifier } from "./utils/isExportModifier";
 import { isNumberKeywordTypeNode } from "./utils/isNumberKeywordTypeNode";
 import { isStringKeywordTypeNode } from "./utils/isStringKeywordTypeNode";
 import { L } from "./utils/logger";
+import { EnumType } from "./models/EnumType";
 
 // TODO allow custom fileResolver for things like VS Code extensions
 export class Parser {
@@ -85,7 +75,7 @@ export class Parser {
 				L.d(`<parserFile>`, "push declaration", declaration.toString());
 				return this.types.push(declaration);
 			}
-			
+
 			if (isTypeAliasDeclaration(statement)) {
 				const declaration = DeclarationFactory.createTypeDeclaration(statement);
 				// TODO refactor probably...
@@ -364,101 +354,12 @@ function createResolvedTypeDeclaration(
 	throw new Error(`Missing implementation for ${resolvedType}`);
 }
 
+// refactor with intellij into DeclarationFactory
 export type DeclarationMeta = {
 	identifier: string;
 	exported: boolean;
 	default: boolean;
 };
-
-// TODO move out
-class DeclarationFactory {
-	public static createEnumDeclaration(statement: EnumDeclaration) {
-
-		function getName(node: { name: Identifier | PropertyName }) {
-			if (isIdentifier(node.name)) {
-				return node.name.text
-			}
-			return ""
-		}
-
-		const members: EnumMembers = new Map()
-
-		statement.members.forEach((member: EnumMember) => {
-			const name = getName(member)
-
-			if (member.initializer && isStringLiteral(member.initializer)) {
-				members.set(name, member.initializer.text)
-				return
-			}
-
-			throw new Error(`Could not resolve the values of the member ${name} in enum ${statement.name.escapedText as string}.`)
-		})
-
-		return new EnumTypeDeclaration(DeclarationFactory.createMeta(statement), members)
-	}
-
-	public static createTypeDeclaration(statement: TypeAliasDeclaration) {
-		L.d(
-			`<TypeAliasDeclarationFactory.create>`,
-			statement.kind,
-			statement.type.kind
-		);
-
-		const meta: DeclarationMeta =
-			DeclarationFactory.createMeta(statement);
-
-		if (isLiteralTypeNode(statement.type)) {
-			return new LiteralTypeDeclaration(meta, statement.type);
-		}
-
-		if (isUnionTypeNode(statement.type)) {
-			return new UnionTypeDeclaration(meta, statement.type);
-		}
-
-		if (isIntersectionTypeNode(statement.type)) {
-			return new IntersectionTypeDeclaration(meta, statement.type);
-		}
-
-		if (isStringKeywordTypeNode(statement.type)) {
-			return new StringTypeDeclaration(meta);
-		}
-
-		if (isNumberKeywordTypeNode(statement.type)) {
-			return new NumberTypeDeclaration(meta);
-		}
-
-		if (isArrayTypeNode(statement.type)) {
-			return new ArrayTypeDeclaration(meta, statement.type);
-		}
-
-		if (isTypeReferenceNode(statement.type)) {
-			if (
-				isIdentifier(statement.type.typeName) &&
-				statement.type.typeName.text === "Array"
-			) {
-				return new ArrayTypeDeclaration(meta, statement.type);
-			}
-
-			return new TypeReferenceDeclaration(meta, statement.type);
-		}
-
-		if (isTypeLiteralNode(statement.type)) {
-			return new TypeLiteralDeclaration(meta, statement.type);
-		}
-
-		throw new Error(`Unknown TypeNode kind: ${statement.type.kind}`);
-	}
-
-	public static createMeta(
-		statement: TypeAliasDeclaration | EnumDeclaration
-	): DeclarationMeta {
-		return {
-			identifier: statement.name.escapedText as string,
-			exported: statement.modifiers?.some(isExportModifier) ?? false,
-			default: statement.modifiers?.some(isDefaultModifier) ?? false,
-		};
-	}
-}
 
 export function typeFactory(node: TypeNode) {
 	L.d(`<typeFactory>`, node.kind);
@@ -500,20 +401,24 @@ export function typeFactory(node: TypeNode) {
 	}
 
 	if (isBooleanKeywordTypeNode(node)) {
-		return new BooleanType()
+		return new BooleanType();
 	}
 
 	throw new Error(`Unknown TypeNode kind: ${node.kind}`);
 }
 
 export type Types =
-	| LiteralType
-	| UnionType
-	| IntersectionType
 	| ArrayType
+	| BooleanType
+	| EnumType
+	| IntersectionType
+	| LiteralType
+	| NumberType
 	| StringType
+	| TypeLiteral
 	| TypeReference
-	| TypeLiteral;
+	| UnknownType
+	| UnionType;
 
 const POSSIBLY_URESOLVED_CLASS = [
 	TypeReferenceDeclaration,

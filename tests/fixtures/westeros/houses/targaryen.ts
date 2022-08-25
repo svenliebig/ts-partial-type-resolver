@@ -1,1 +1,4 @@
-export type Targaryen = string
+export type Targaryen = {
+	name: "Targaryen",
+	saying: "Fire and Blood"
+}
