@@ -25,3 +25,11 @@ test("should parse the ExportedBasicString StringTypeDeclaration", (t) => {
 	t.assert(declaration instanceof StringTypeDeclaration)
 	t.assert(declaration?.type instanceof StringType)
 })
+
+// toString
+
+test("toString of BasicString", (t) => {
+	const parser = new Parser(resolve(__dirname, "fixtures", "stringType.ts"))
+	const declaration = parser.getDeclaration("BasicString")
+	t.is(declaration?.toString(), "type BasicString = string")
+})

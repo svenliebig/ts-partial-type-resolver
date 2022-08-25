@@ -324,6 +324,11 @@ export class Parser {
 			return declaration
 		}
 
+		if (resolvedType instanceof TypeReference && this.config.doNotResolve.includes(resolvedType.identifier)) {
+			declaration.type = resolvedType
+			return declaration
+		}
+
 		if (resolvedType instanceof UnionType) {
 			// TODO remove the typescript node from the TypeLiteral class to prevent this
 			declaration.type = resolvedType
@@ -336,7 +341,8 @@ export class Parser {
 			return declaration
 		}
 
-		if (resolvedType instanceof TypeReference && this.config.doNotResolve.includes(resolvedType.identifier)) {
+		if (resolvedType instanceof UnknownType) {
+			// TODO remove the typescript node from the TypeLiteral class to prevent this
 			declaration.type = resolvedType
 			return declaration
 		}
