@@ -33,7 +33,7 @@ type Person = {
 
 ## Usage
 
-Let's assume the following structure.
+Let's assume the following structure (You can also see the sources of that example [here](https://github.com/svenliebig/ts-partial-type-resolver/tree/master/examples/person).
 
 ```ts
 // state.ts
