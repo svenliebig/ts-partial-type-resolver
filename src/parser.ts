@@ -2,15 +2,12 @@ import { readFileSync } from "fs"
 import { createSourceFile, isEnumDeclaration, isImportDeclaration, isLiteralTypeNode, isTypeAliasDeclaration, ScriptTarget } from "typescript"
 import { ArrayType } from "./models/ArrayType"
 import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration"
-import { BooleanType } from "./models/BooleanType"
-import { EnumType } from "./models/EnumType"
 import { Import } from "./models/Import"
 import { IntersectionType } from "./models/IntersectionType"
 import { IntersectionTypeDeclaration } from "./models/IntersectionTypeDeclaration"
-import { LiteralType } from "./models/LiteralType"
-import { NumberType } from "./models/NumberType"
 import { StringType } from "./models/StringType"
 import { StringTypeDeclaration } from "./models/StringTypeDeclaration"
+import { Type } from "./models/Type"
 import { TypeDeclaration } from "./models/TypeDeclaration"
 import { TypeLiteral } from "./models/TypeLiteral"
 import { TypeLiteralDeclaration } from "./models/TypeLiteralDeclaration"
@@ -58,7 +55,7 @@ type ParserConfig = {
 }
 
 const DEFAULT_CONFIG: Required<ParserConfig> = {
-	breakOnUnresolvedImports: false,
+	breakOnUnresolvedImports: true,
 	unknownTypeForUnresolved: false,
 	resolveLibraries: false,
 	doNotResolve: [],
@@ -140,7 +137,7 @@ export class Parser {
 		return false
 	}
 
-	private isTypeResolved(type: Types): type is ResolvedType {
+	private isTypeResolved(type: Type): type is Type {
 		L.d(`<isTypeResolved>`, type.toString())
 
 		if (type instanceof TypeReference && !type.isPrimitive() && !this.config.doNotResolve.includes(type.identifier)) {
@@ -194,7 +191,7 @@ export class Parser {
 		throw new Error(`Could not resolve declaration for: ${declaration.identifier}.`)
 	}
 
-	private resolveType(type: TypeReference | UnionType | TypeLiteral | ArrayType | IntersectionType): ResolvedType {
+	private resolveType(type: TypeReference | UnionType | TypeLiteral | ArrayType | IntersectionType): Type {
 		L.d(`<resolveType> ${type.toString()}`)
 		if (type instanceof TypeReference) {
 			return this.resolveTypeReference(type)
@@ -211,7 +208,7 @@ export class Parser {
 		}
 	}
 
-	private resolveTypeReference(type: TypeReference): ResolvedType {
+	private resolveTypeReference(type: TypeReference): Type {
 		const lp = [`<resolveTypeReference>`, type.toString()]
 		L.d(...lp)
 
@@ -283,7 +280,7 @@ export class Parser {
 		const keys = type.properties.keys()
 
 		for (const key of keys) {
-			const propertyTyp: Types = type.properties.get(key) as Types
+			const propertyTyp: Type = type.properties.get(key) as Type
 
 			if (!this.isTypeResolved(propertyTyp)) {
 				L.d(`<resolveTypeLiteral>`, `property: ${propertyTyp} is not resolved.`)
@@ -307,7 +304,7 @@ export class Parser {
 		}
 	}
 
-	private createResolvedTypeDeclaration(declaration: TypeDeclaration, resolvedType: ResolvedType) {
+	private createResolvedTypeDeclaration(declaration: TypeDeclaration, resolvedType: Type) {
 		if (resolvedType instanceof StringType) {
 			return new StringTypeDeclaration(declaration.getMeta())
 		}
@@ -358,19 +355,6 @@ export type DeclarationMeta = {
 	default: boolean
 }
 
-export type Types =
-	| ArrayType
-	| BooleanType
-	| EnumType
-	| IntersectionType
-	| LiteralType
-	| NumberType
-	| StringType
-	| TypeLiteral
-	| TypeReference
-	| UnknownType
-	| UnionType
-
 const POSSIBLY_URESOLVED_DECLARATION = [
 	TypeReferenceDeclaration,
 	UnionTypeDeclaration,
@@ -379,10 +363,6 @@ const POSSIBLY_URESOLVED_DECLARATION = [
 	IntersectionTypeDeclaration,
 ]
 
-function isInstanceOfUnresolvedClass(value: unknown): value is PossiblyUnresolvedDeclaration {
-	return POSSIBLY_URESOLVED_DECLARATION.some((clazz) => value instanceof clazz)
-}
-
 type PossiblyUnresolvedDeclaration =
 	| TypeReferenceDeclaration
 	| UnionTypeDeclaration
@@ -390,4 +370,6 @@ type PossiblyUnresolvedDeclaration =
 	| ArrayTypeDeclaration
 	| IntersectionTypeDeclaration
 
-type ResolvedType = Exclude<Types, TypeReference>
+function isInstanceOfUnresolvedClass(value: unknown): value is PossiblyUnresolvedDeclaration {
+	return POSSIBLY_URESOLVED_DECLARATION.some((clazz) => value instanceof clazz)
+}

@@ -1,7 +1,7 @@
 import { ArrayTypeNode, isTypeReferenceNode, TypeReferenceNode } from "typescript"
-import { Types } from "../parser"
 import { TypeFactory } from "../utils/TypeFactory"
 import { StringType } from "./StringType"
+import { Type } from "./Type"
 
 /**
  * Examples:
@@ -11,11 +11,13 @@ import { StringType } from "./StringType"
  * string[]
  * ```
  */
-export class ArrayType {
-	public arrayType: Types
+export class ArrayType extends Type {
+	public arrayType: Type
 
 	// TODO these type do not belong here
 	constructor(node: TypeReferenceNode | ArrayTypeNode) {
+		super()
+
 		// TODO this should not be necessary
 		this.arrayType = new StringType()
 

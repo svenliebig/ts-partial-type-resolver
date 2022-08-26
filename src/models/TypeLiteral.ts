@@ -1,11 +1,13 @@
 import { isIdentifier, isPropertySignature, TypeLiteralNode } from "typescript"
-import { Types } from "../parser"
 import { TypeFactory } from "../utils/TypeFactory"
+import { Type } from "./Type"
 
-export class TypeLiteral {
-	public properties: Map<string, Types> = new Map()
+export class TypeLiteral extends Type {
+	public properties: Map<string, Type> = new Map()
 
 	constructor(type: TypeLiteralNode) {
+		super()
+
 		type.members.forEach((member) => {
 			if (isPropertySignature(member)) {
 				if (isIdentifier(member.name)) {

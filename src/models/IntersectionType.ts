@@ -1,11 +1,12 @@
 import { IntersectionTypeNode } from "typescript"
-import { Types } from "../parser"
 import { TypeFactory } from "../utils/TypeFactory"
+import { Type } from "./Type"
 
-export class IntersectionType {
-	public types: Array<Types>
+export class IntersectionType extends Type {
+	public types: Array<Type>
 
 	constructor(node: IntersectionTypeNode) {
+		super()
 		this.types = node.types.map(TypeFactory.create)
 	}
 

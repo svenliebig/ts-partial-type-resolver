@@ -1,3 +1,7 @@
-export class UnknownType {
-	toString() { return "unknown"; }
+import { Type } from "./Type"
+
+export class UnknownType extends Type {
+	toString() {
+		return "unknown"
+	}
 }

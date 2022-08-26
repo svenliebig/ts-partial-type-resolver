@@ -1,4 +1,7 @@
+import { Type } from "./Type"
 
-export class BooleanType {
-	toString() { return "boolean"; }
+export class BooleanType extends Type {
+	toString() {
+		return "boolean"
+	}
 }

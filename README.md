@@ -33,7 +33,123 @@ type Person = {
 
 ## Usage
 
-TODO
+Let's assume the following structure.
+
+```ts
+// state.ts
+export enum State {
+	ALABAMA = "AL",
+	CALIFORNIA = "CA",
+	NEVADA = "NV",
+}
+
+// language.ts
+export enum Language {
+	ENGLISH = "EN",
+	GERMAN = "DE",
+}
+
+// address.ts
+import { State } from "./state"
+
+export type Address = {
+	street: string
+	state: State
+	city: string
+	postalcode: number
+}
+
+// person.ts
+import { Language } from "./language"
+import { Address } from "./address"
+
+type Person = {
+	name: string
+	surname: string
+	address: Address
+	languages: Array<Language>
+	employed: boolean
+}
+```
+
+You can execute the parser like that:
+
+```ts
+import { Parser, prettify } from "ts-partial-type-parser"
+
+const path = resolve(__dirname, "person.ts")
+const parser = new Parser(path)
+const person = parser.resolve("Person")
+
+console.log(prettify(person.toString()))
+```
+
+that will log:
+
+```ts
+type Person = {
+	name: string
+	surname: string
+	address: {
+		street: string
+		state: State
+		city: string
+		postalcode: number
+	}
+	languages: Array<Language>
+	employed: boolean
+}
+```
+
+it resolves the type. So you can also rewrite the type, with `rewrite`:
+
+```ts
+import { Parser, prettify, rewrite } from "ts-partial-type-parser"
+
+const path = resolve(__dirname, "person.ts")
+const parser = new Parser(path)
+const person = parser.resolve("Person")
+
+const rewrittenPerson = rewrite(person.type, {
+	boolean(type) {
+		return "faker.boolean()"
+	},
+	string(type) {
+		return "faker.string()"
+	},
+	enum(type) {
+		// take the first one
+		return `${type.name}.${type.members.keys().next().value}`
+	},
+	number(type) {
+		return "faker.number()"
+	},
+	reference(type) {
+		return type.toString()
+	},
+})
+
+console.log(`const mock = ${prettify(rewrittenPerson)}`)
+```
+
+this will output:
+
+```ts
+const mock = {
+	name: faker.string(),
+	surname: faker.string(),
+	address: {
+		street: faker.string(),
+		state: State.ALABAMA,
+		city: faker.string(),
+		postalcode: faker.number(),
+	},
+	languages: [Language.ENGLISH],
+	employed: faker.boolean(),
+}
+```
+
+That way you can create mocking types or rewriting types!
 
 ## Supported
 
@@ -56,6 +172,8 @@ TODO
 
 - [ ] - `Parenthesiszed Types`
 - [ ] - `Boolean`
+- [ ] - `import * as Type`
+- [ ] - `export * from`
 - [ ] - `Interface`
 - [ ] - `Extends`
 - [ ] - `Pick`
@@ -67,3 +185,7 @@ TODO
 - [ ] - `Omit`
 - [ ] - `[string, number]`
 - [ ] - Looped types create a loop in the code
+
+```
+
+```

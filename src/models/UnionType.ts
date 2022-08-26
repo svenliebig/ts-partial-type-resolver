@@ -1,11 +1,12 @@
 import { UnionTypeNode } from "typescript"
-import { Types } from "../parser"
 import { TypeFactory } from "../utils/TypeFactory"
+import { Type } from "./Type"
 
-export class UnionType {
-	public types: Array<Types>
+export class UnionType extends Type {
+	public types: Array<Type>
 
 	constructor(node: UnionTypeNode) {
+		super()
 		this.types = node.types.map(TypeFactory.create)
 	}
 
