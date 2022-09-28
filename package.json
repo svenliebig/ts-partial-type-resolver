@@ -1,8 +1,12 @@
 {
-  "name": "ts-ast-parser",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "ts-partial-type-resolver",
+  "version": "0.1.0",
   "license": "MIT",
+  "main": "dist/index.js",
+  "files": [
+    "src",
+    "dist"
+  ],
   "scripts": {
     "start": "ts-node start.ts",
     "test:coverage": "c8 -r lcov ava",
