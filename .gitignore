@@ -1,5 +1,6 @@
 # project folders
 dist
+types
 coverage
 node_modules
 

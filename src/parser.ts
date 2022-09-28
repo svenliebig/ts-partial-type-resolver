@@ -171,6 +171,10 @@ export class Parser {
 		return true
 	}
 
+	public getDeclarations(): Array<TypeDeclaration> {
+		return this.declarations
+	}
+
 	public resolve(name: string) {
 		L.d(`<resolve>`, name)
 

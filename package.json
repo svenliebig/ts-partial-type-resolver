@@ -1,16 +1,20 @@
 {
   "name": "ts-partial-type-resolver",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "license": "MIT",
   "main": "dist/index.js",
+  "types": "types/index.d.js",
   "files": [
     "src",
-    "dist"
+    "dist",
+    "types"
   ],
   "scripts": {
     "start": "ts-node start.ts",
     "test:coverage": "c8 -r lcov ava",
-    "test": "ava"
+    "test": "ava",
+    "build": "tsc",
+    "prepublish": "build"
   },
   "dependencies": {
     "typescript": "^4.7.4"
