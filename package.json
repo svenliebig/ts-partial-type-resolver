@@ -14,7 +14,7 @@
     "test:coverage": "c8 -r lcov ava",
     "test": "ava",
     "build": "tsc",
-    "prepublish": "build"
+    "prepublish": "yarn build"
   },
   "dependencies": {
     "typescript": "^4.7.4"
