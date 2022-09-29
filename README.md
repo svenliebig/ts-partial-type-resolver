@@ -170,20 +170,23 @@ That way you can create mocking types or rewriting types!
 
 ## TODO
 
-- [ ] - `Parenthesiszed Types`
-- [ ] - `Boolean`
-- [ ] - `import * as Type`
+- [ ] - `resolving imports coming from libraries`
+- [ ] - `intersection merge on rewrite`
+- [ ] - `resolving alias imports`
+- [ ] - `pick`
+- [ ] - `omit`
+- [ ] - `boolean`
+- [ ] - `import * as type`
 - [ ] - `export * from`
-- [ ] - `Interface`
-- [ ] - `Extends`
-- [ ] - `Pick`
+- [ ] - `interface`
+- [ ] - `extends`
 - [ ] - `void`
 - [ ] - `library imports`
 - [ ] - `undefined`
 - [ ] - `function`
 - [ ] - `? optional properties`
-- [ ] - `Omit`
 - [ ] - `[string, number]`
+- [ ] - `parenthesiszed types`
 - [ ] - Looped types create a loop in the code
 
 ```
