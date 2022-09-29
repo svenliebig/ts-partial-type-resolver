@@ -1,5 +1,6 @@
 import { readFileSync } from "fs"
 import { createSourceFile, isEnumDeclaration, isImportDeclaration, isLiteralTypeNode, isTypeAliasDeclaration, ScriptTarget } from "typescript"
+import { FileManager } from "./utils/FileManager"
 import { ArrayType } from "./models/ArrayType"
 import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration"
 import { Import } from "./models/Import"
@@ -67,6 +68,8 @@ export class Parser {
 	private declarations: Array<TypeDeclaration> = []
 	private config: Required<ParserConfig>
 
+	private fileManager = new FileManager()
+
 	constructor(path: string, config: ParserConfig = {}) {
 		this.config = {
 			...DEFAULT_CONFIG,
@@ -77,12 +80,13 @@ export class Parser {
 	}
 
 	private parseFile(path: string) {
+		const lp = [`<parseFile>`, path]
 		const content = readFileSync(path, "utf-8")
 		const file = createSourceFile("e", content, ScriptTarget.ESNext)
-		L.d(`<parseFile>`, `statements.length: ${file.statements.length}`)
+		L.d(...lp, `statements.length: ${file.statements.length}`)
 
 		file.statements.forEach((statement) => {
-			L.d(`<parseFile>`, `statement: ${statement.kind}`)
+			L.d(...lp, `statement: ${statement.kind}`)
 			if (isImportDeclaration(statement)) {
 				this.imports.push(importFactory(statement, path))
 			}
@@ -93,21 +97,43 @@ export class Parser {
 			if (isEnumDeclaration(statement)) {
 				const declaration = DeclarationFactory.createEnumDeclaration(statement)
 				// TODO refactor probably...
-				L.d(`<parserFile>`, "push declaration", declaration.toString())
+				L.d(...lp, "enum", "push declaration", declaration.toString())
+				this.fileManager.addTypeDeclarationToFile(path, declaration)
 				return this.declarations.push(declaration)
 			}
 
 			if (isTypeAliasDeclaration(statement)) {
 				const declaration = DeclarationFactory.createTypeDeclaration(statement)
 				// TODO refactor probably...
-				L.d(`<parserFile>`, "push declaration", declaration.toString())
+				L.d(...lp, "typeAliasDeclaration", "push declaration", declaration.toString())
 				return this.declarations.push(declaration)
 			}
 		})
 	}
 
+	public getDeclarations(): Array<TypeDeclaration> {
+		return this.declarations
+	}
+
+	public getSourcePathOf(declaration: TypeDeclaration) {
+		return this.fileManager.getFilePathOf(declaration)
+	}
+
 	public getDeclaration(name: string) {
 		return this.declarations.find((type) => type.identifier === name)
+	}
+
+	/**
+	 * Checks if a the requested type exists and is resolved.
+	 */
+	public isResolved(identifier: string): boolean {
+		const declaration = this.getDeclaration(identifier)
+
+		if (declaration) {
+			return this.isTypeResolved(declaration.type)
+		}
+
+		return false
 	}
 
 	private getImport(name: string) {
@@ -124,44 +150,32 @@ export class Parser {
 		this.imports.splice(this.imports.indexOf(imported), 1)
 	}
 
-	/**
-	 * Checks if a the requested type exists and is resolved.
-	 */
-	public isResolved(identifier: string): boolean {
-		const declaration = this.getDeclaration(identifier)
-
-		if (declaration) {
-			return this.isTypeResolved(declaration.type)
-		}
-
-		return false
-	}
-
 	private isTypeResolved(type: Type): type is Type {
-		L.d(`<isTypeResolved>`, type.toString())
+		const lp = [`<isTypeResolved>`, type.toString()]
+		L.d(...lp)
 
 		if (type instanceof TypeReference && !type.isPrimitive() && !this.config.doNotResolve.includes(type.identifier)) {
-			L.d(`<isTypeResolved>`, "it's a type reference and not primitive, return false")
+			L.d(...lp, "it's a type reference and not primitive, return false")
 			return false
 		}
 
 		if (type instanceof TypeLiteral) {
-			L.d(`<isTypeResolved>`, "it's a type literal, checking all properties")
+			L.d(...lp, "it's a type literal, checking all properties")
 			return !Array.from(type.properties.values()).some((property) => !this.isTypeResolved(property))
 		}
 
 		if (type instanceof UnionType) {
-			L.d(`<isTypeResolved>`, "it's a union type, checking all types")
+			L.d(...lp, "it's a union type, checking all types")
 			return !type.types.some((type) => !this.isTypeResolved(type))
 		}
 
 		if (type instanceof IntersectionType) {
-			L.d(`<isTypeResolved>`, "it's an intersection type, checking all types")
+			L.d(...lp, "it's an intersection type, checking all types")
 			return !type.types.some((type) => !this.isTypeResolved(type))
 		}
 
 		if (type instanceof ArrayType) {
-			L.d(`<isTypeResolved>`, "it's an array type, checking type of the Array")
+			L.d(...lp, "it's an array type, checking type of the Array")
 			return this.isTypeResolved(type.arrayType)
 		}
 
@@ -169,10 +183,6 @@ export class Parser {
 		// false positive fallthroughs here
 
 		return true
-	}
-
-	public getDeclarations(): Array<TypeDeclaration> {
-		return this.declarations
 	}
 
 	public resolve(name: string) {
