@@ -18,8 +18,9 @@ import { UnionType } from "./models/UnionType"
 import { UnionTypeDeclaration } from "./models/UnionTypeDeclaration"
 import { UnknownType } from "./models/UnknownType"
 import { DeclarationFactory } from "./utils/DeclarationFactory"
-import { importFactory } from "./utils/importFactory"
+import { importFactory } from "./utils/imports/factory"
 import { L } from "./utils/logger"
+import { ImportManager } from "./utils/imports/manager"
 
 type ParserConfig = {
 	breakOnUnresolvedImports?: boolean
@@ -64,11 +65,11 @@ const DEFAULT_CONFIG: Required<ParserConfig> = {
 
 // TODO allow custom fileResolver for things like VS Code extensions
 export class Parser {
-	private imports: Array<Import> = []
 	private declarations: Array<TypeDeclaration> = []
 	private config: Required<ParserConfig>
 
 	private fileManager = new FileManager()
+	private importManager = new ImportManager()
 
 	constructor(path: string, config: ParserConfig = {}) {
 		this.config = {
@@ -88,7 +89,7 @@ export class Parser {
 		file.statements.forEach((statement) => {
 			L.d(...lp, `statement: ${statement.kind}`)
 			if (isImportDeclaration(statement)) {
-				this.imports.push(importFactory(statement, path))
+				this.importManager.add(importFactory(statement, path))
 			}
 
 			if (isLiteralTypeNode(statement)) {
@@ -136,10 +137,6 @@ export class Parser {
 		return false
 	}
 
-	private getImport(name: string) {
-		return this.imports.find((imported) => imported.containsIdentifier(name))
-	}
-
 	// TODO split this up into:
 	// - resolve import return string path
 	// - remove import
@@ -147,7 +144,7 @@ export class Parser {
 	private resolveImport(imported: Import) {
 		const path = imported.resolve()
 		this.parseFile(path)
-		this.imports.splice(this.imports.indexOf(imported), 1)
+		this.importManager.remove(imported)
 	}
 
 	private isTypeResolved(type: Type): type is Type {
@@ -249,7 +246,7 @@ export class Parser {
 			}
 		}
 
-		const possibleImport = this.getImport(type.identifier)
+		const possibleImport = this.importManager.get(type.identifier)
 
 		if (possibleImport) {
 			try {

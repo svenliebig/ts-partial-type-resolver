@@ -2,6 +2,7 @@ import { existsSync } from "fs"
 import { parse, resolve } from "path"
 import { L } from "../utils/logger"
 
+// TODO not sure if this should be in some kind of utils/import package
 export class Import {
 	constructor(
 		/** the path of the file that contains the import declaration. */

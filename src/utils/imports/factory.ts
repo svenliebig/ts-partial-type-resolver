@@ -1,6 +1,9 @@
 import { ImportDeclaration, isImportClause, isImportSpecifier, isNamedImports, isStringLiteralLike } from "typescript"
-import { Import } from "../models/Import"
+import { Import } from "../../models/Import"
 
+/**
+ * For translating `typescript` AST nodes into our own model type.
+ */
 export function importFactory(statement: ImportDeclaration, source: string): Import {
 	const named: Array<string> = []
 	const defau: string | null = null
