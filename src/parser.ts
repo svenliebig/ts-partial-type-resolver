@@ -3,7 +3,7 @@ import { createSourceFile, isEnumDeclaration, isImportDeclaration, isLiteralType
 import { FileManager } from "./utils/FileManager"
 import { ArrayType } from "./models/ArrayType"
 import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration"
-import { Import } from "./models/Import"
+import { Import } from "./utils/imports/model"
 import { IntersectionType } from "./models/IntersectionType"
 import { IntersectionTypeDeclaration } from "./models/IntersectionTypeDeclaration"
 import { StringType } from "./models/StringType"
@@ -142,7 +142,7 @@ export class Parser {
 	// - remove import
 	// - parse
 	private resolveImport(imported: Import) {
-		const path = imported.resolve()
+		const path = this.importManager.resolve(imported)
 		this.parseFile(path)
 		this.importManager.remove(imported)
 	}

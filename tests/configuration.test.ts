@@ -1,8 +1,8 @@
 import test from "ava"
 import { resolve } from "path"
-import { UnresolvedImportError } from "../src/models/Import"
 import { UnknownType } from "../src/models/UnknownType"
 import { Parser } from "../src/parser"
+import { UnresolvedImportError } from "../src/utils/imports/errors"
 
 test("breakOnUnresolvedImports: true", (t) => {
 	const parser = new Parser(resolve(__dirname, "fixtures", "configurationTestTypes.ts"), { breakOnUnresolvedImports: true })

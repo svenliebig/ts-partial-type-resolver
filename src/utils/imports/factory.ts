@@ -1,5 +1,5 @@
 import { ImportDeclaration, isImportClause, isImportSpecifier, isNamedImports, isStringLiteralLike } from "typescript"
-import { Import } from "../../models/Import"
+import { Import } from "./model"
 
 /**
  * For translating `typescript` AST nodes into our own model type.
