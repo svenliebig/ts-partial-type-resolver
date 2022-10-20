@@ -47,8 +47,17 @@ export class ImportManager {
 			throw new UnresolvedImportError(i)
 		} else {
 			// this is a library
-			// TODO node_modules
-			// TODO @types
+
+			// recursion until mnt root: find closest package.json
+
+			// -- resolve node_modules
+
+			// -- -- resolve package name
+			// -- -- resolve @types
+
+			// -- -- -- parse package.json and find `types` property
+			// -- -- -- find relative file path to that file
+
 			throw new UnresolvedImportError(i)
 		}
 	}
