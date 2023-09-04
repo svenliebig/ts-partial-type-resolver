@@ -15,6 +15,7 @@ import {
 	isTypeQueryNode,
 	isTypeReferenceNode,
 	isUnionTypeNode,
+	ParameterDeclaration,
 	PropertyName,
 	TypeAliasDeclaration,
 } from "typescript"
@@ -36,6 +37,9 @@ import { isNumberKeywordTypeNode } from "./isNumberKeywordTypeNode"
 import { isStringKeywordTypeNode } from "./isStringKeywordTypeNode"
 import { printSyntaxKind } from "./printSyntaxKind"
 import { TypeFactory } from "./TypeFactory"
+import { UnknownType } from "../models"
+import { Type } from "../models/Type"
+import { TypeDeclaration } from "../models/TypeDeclaration"
 
 export class DeclarationFactory {
 	public static createEnumDeclaration(statement: EnumDeclaration) {
@@ -63,8 +67,12 @@ export class DeclarationFactory {
 		return new EnumTypeDeclaration(DeclarationFactory.createMeta(statement), members)
 	}
 
-	public static createTypeDeclaration(statement: TypeAliasDeclaration) {
+	public static createTypeDeclaration(statement: TypeAliasDeclaration | ParameterDeclaration) {
 		const meta: DeclarationMeta = DeclarationFactory.createMeta(statement)
+
+		if (!statement.type) {
+			throw new Error("statemetn.type has no type, p[robably an ParameterDecl that is empty, should be filtered, past sven was to lazy")
+		}
 
 		if (isLiteralTypeNode(statement.type)) {
 			return new LiteralTypeDeclaration(meta, statement.type)
@@ -103,7 +111,13 @@ export class DeclarationFactory {
 		}
 
 		if (isFunctionTypeNode(statement.type)) {
-			return new FunctionTypeDeclaration(meta, TypeFactory.create(statement.type.type, meta.identifier))
+			const parameters: Array<TypeDeclaration> = statement.type.parameters
+				.filter((p) => !!p.kind)
+				.map((p) => {
+					return DeclarationFactory.createTypeDeclaration(p)
+				})
+
+			return new FunctionTypeDeclaration(meta, parameters, TypeFactory.create(statement.type.type, meta.identifier))
 		}
 
 		if (isTupleTypeNode(statement.type)) {
@@ -130,9 +144,9 @@ export class DeclarationFactory {
 		throw new UnhandledTypeNodeError(statement)
 	}
 
-	public static createMeta(statement: TypeAliasDeclaration | EnumDeclaration): DeclarationMeta {
+	public static createMeta(statement: TypeAliasDeclaration | EnumDeclaration | ParameterDeclaration): DeclarationMeta {
 		return {
-			identifier: statement.name.escapedText as string,
+			identifier: isIdentifier(statement.name) ? (statement.name.escapedText as string) : "",
 			exported: statement.modifiers?.some(isExportModifier) ?? false,
 			default: statement.modifiers?.some(isDefaultModifier) ?? false,
 		}
@@ -140,12 +154,12 @@ export class DeclarationFactory {
 }
 
 class UnhandledTypeNodeError extends Error {
-	constructor(type: TypeAliasDeclaration) {
+	constructor(type: TypeAliasDeclaration | ParameterDeclaration) {
 		super()
 		this.message = this.createMessage(type)
 	}
 
-	private createMessage(node: TypeAliasDeclaration): string {
+	private createMessage(node: TypeAliasDeclaration | ParameterDeclaration): string {
 		return [
 			`DeclarationFactory: Unhandled TypeNode`,
 			`  kind: ${printSyntaxKind(node.kind)}`,

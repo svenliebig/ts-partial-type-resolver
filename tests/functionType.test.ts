@@ -75,3 +75,35 @@ test("should parse the VoidFunction", (t) => {
 
 	t.is(declaration?.toString(), "type VoidFunction = () => void")
 })
+
+test("should parse the VoidFunctionWithParameter", (t) => {
+	const declaration = parser.getDeclaration("VoidFunctionWithParameter")
+
+	t.is(declaration?.identifier, "VoidFunctionWithParameter")
+	t.is(declaration?.exported, false)
+	t.is(declaration?.default, false)
+	assertInstance(t, declaration, FunctionTypeDeclaration)
+
+	const { type } = declaration as FunctionTypeDeclaration
+	assertInstance(t, type, FunctionType)
+	assertInstance(t, type.returnType, VoidType)
+	t.is((type as FunctionType).identifier, "VoidFunctionWithParameter")
+
+	t.is(declaration?.toString(), "type VoidFunctionWithParameter = (p: string) => void")
+})
+
+test("should parse the VoidFunctionWithParameters", (t) => {
+	const declaration = parser.getDeclaration("VoidFunctionWithParameters")
+
+	t.is(declaration?.identifier, "VoidFunctionWithParameters")
+	t.is(declaration?.exported, false)
+	t.is(declaration?.default, false)
+	assertInstance(t, declaration, FunctionTypeDeclaration)
+
+	const { type } = declaration as FunctionTypeDeclaration
+	assertInstance(t, type, FunctionType)
+	assertInstance(t, type.returnType, VoidType)
+	t.is((type as FunctionType).identifier, "VoidFunctionWithParameters")
+
+	t.is(declaration?.toString(), "type VoidFunctionWithParameters = (p: string, n: number) => void")
+})

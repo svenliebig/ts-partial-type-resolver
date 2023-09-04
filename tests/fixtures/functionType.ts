@@ -7,3 +7,6 @@ export type ExportedNumberFunction = () => number
 type UnionFunction = () => number | string
 
 type VoidFunction = () => void
+
+type VoidFunctionWithParameter = (p: string) => void
+type VoidFunctionWithParameters = (p: string, n: number) => void

@@ -89,7 +89,7 @@ export class TypeFactory {
 			}
 
 			if (isFunctionTypeNode(node)) {
-				return new FunctionType(identifier, new UnknownType())
+				return new FunctionType(identifier, [], new UnknownType())
 			}
 
 			if (isVoidKeywordTypeNode(node)) {
