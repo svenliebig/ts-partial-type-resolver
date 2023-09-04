@@ -6,21 +6,23 @@ export class FileManager {
 	private files: Map<string, Array<string>> = new Map()
 
 	public addTypeDeclarationToFile(file: string, declaration: TypeDeclaration) {
-		const lp = [`<addTypeDeclarationToFile>`, file, declaration.identifier]
-		L.d(...lp)
+		L.enter(`${FileManager.name}.addTypeDeclarationToFile(${file}, ${declaration.identifier})`)
+
 		const path = normalize(file)
 		if (!this.files.has(path)) {
-			L.d(...lp, "!hasPath", "we add an empty array on that entry")
+			L.d("!hasPath", "we add an empty array on that entry")
 			this.files.set(path, [])
 		}
 
 		const declarations = this.files.get(path)! // we know this because of the previous !has
 		if (!declarations.includes(declaration.identifier)) {
-			L.d(...lp, "the identifier is not included", "added the identifier to the array")
+			L.d("the identifier is not included", "added the identifier to the array")
 			declarations?.push(declaration.identifier)
 		} else {
-			L.d(...lp, "the identifier is already")
+			L.d("the identifier is already")
 		}
+
+		L.exit()
 	}
 
 	public getFilePathOf(declaration: TypeDeclaration) {

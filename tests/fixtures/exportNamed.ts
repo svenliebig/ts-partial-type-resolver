@@ -1,0 +1,1 @@
+export { ExportedBasicString } from "./stringType"

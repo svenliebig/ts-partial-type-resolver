@@ -1,5 +1,15 @@
 import { readFileSync } from "fs"
-import { createSourceFile, isEnumDeclaration, isImportDeclaration, isLiteralTypeNode, isTypeAliasDeclaration, ScriptTarget } from "typescript"
+import {
+	createSourceFile,
+	isEnumDeclaration,
+	isExportDeclaration,
+	isImportDeclaration,
+	isLiteralTypeNode,
+	isNamedExports,
+	isStringLiteralLike,
+	isTypeAliasDeclaration,
+	ScriptTarget,
+} from "typescript"
 import { FileManager } from "./utils/FileManager"
 import { ArrayType } from "./models/ArrayType"
 import { ArrayTypeDeclaration } from "./models/ArrayTypeDeclaration"
@@ -21,6 +31,9 @@ import { DeclarationFactory } from "./utils/DeclarationFactory"
 import { importFactory } from "./utils/imports/factory"
 import { L } from "./utils/logger"
 import { ImportManager } from "./utils/imports/manager"
+import { printSyntaxKind } from "./utils/printSyntaxKind"
+import { resolve } from "path"
+import { getTsFilePath } from "./utils/getTsFilePath"
 
 type ParserConfig = {
 	breakOnUnresolvedImports?: boolean
@@ -81,15 +94,43 @@ export class Parser {
 	}
 
 	private parseFile(path: string) {
-		const lp = [`<parseFile>`, path]
+		L.enter(`parseFile(path: ${path})`)
+
 		const content = readFileSync(path, "utf-8")
 		const file = createSourceFile("e", content, ScriptTarget.ESNext)
-		L.d(...lp, `statements.length: ${file.statements.length}`)
+		L.d(`statements.length: ${file.statements.length}`)
 
 		file.statements.forEach((statement) => {
-			L.d(...lp, `statement: ${statement.kind}`)
+			L.d(`statement: ${printSyntaxKind(statement.kind)}`)
+
 			if (isImportDeclaration(statement)) {
 				this.importManager.add(importFactory(statement, path))
+			}
+
+			if (isExportDeclaration(statement)) {
+				// maybe an export manager
+				// that checks named exports first and later does * exports
+
+				// means export * from ...
+				if (!statement.exportClause) {
+					if (statement.moduleSpecifier && isStringLiteralLike(statement.moduleSpecifier)) {
+						const p = getTsFilePath(resolve(path, "..", statement.moduleSpecifier.text))
+						if (p !== null) {
+							L.d("found file that has * export", p)
+							this.parseFile(p)
+						} else {
+							L.d("could not find file that was used in * export in: ", p)
+						}
+					}
+				} else if (isNamedExports(statement.exportClause)) {
+					if (statement.moduleSpecifier && isStringLiteralLike(statement.moduleSpecifier)) {
+						const ms = statement.moduleSpecifier.text
+						statement.exportClause.elements.forEach((element) => {
+							const i = new Import(path, ms, [element.name.text], null)
+							this.importManager.add(i)
+						})
+					}
+				}
 			}
 
 			if (isLiteralTypeNode(statement)) {
@@ -98,7 +139,7 @@ export class Parser {
 			if (isEnumDeclaration(statement)) {
 				const declaration = DeclarationFactory.createEnumDeclaration(statement)
 				// TODO refactor probably...
-				L.d(...lp, "enum", "push declaration", declaration.toString())
+				L.d("enum", "push declaration", declaration.toString())
 				this.fileManager.addTypeDeclarationToFile(path, declaration)
 				return this.declarations.push(declaration)
 			}
@@ -106,10 +147,12 @@ export class Parser {
 			if (isTypeAliasDeclaration(statement)) {
 				const declaration = DeclarationFactory.createTypeDeclaration(statement)
 				// TODO refactor probably...
-				L.d(...lp, "typeAliasDeclaration", "push declaration", declaration.toString())
+				L.d("typeAliasDeclaration", "push declaration", declaration.toString())
 				return this.declarations.push(declaration)
 			}
 		})
+
+		L.exit()
 	}
 
 	public getDeclarations(): Array<TypeDeclaration> {
@@ -148,46 +191,52 @@ export class Parser {
 	}
 
 	private isTypeResolved(type: Type): type is Type {
-		const lp = [`<isTypeResolved>`, type.toString()]
-		L.d(...lp)
+		L.enter(`Parser.isTypeResolved(${type.toString()})`)
 
 		if (type instanceof TypeReference && !type.isPrimitive() && !this.config.doNotResolve.includes(type.identifier)) {
-			L.d(...lp, "it's a type reference and not primitive, return false")
+			L.d("it's a type reference and not primitive, return false")
+			L.exit()
 			return false
 		}
 
 		if (type instanceof TypeLiteral) {
-			L.d(...lp, "it's a type literal, checking all properties")
+			L.d("it's a type literal, checking all properties")
+			L.exit()
 			return !Array.from(type.properties.values()).some((property) => !this.isTypeResolved(property))
 		}
 
 		if (type instanceof UnionType) {
-			L.d(...lp, "it's a union type, checking all types")
+			L.d("it's a union type, checking all types")
+			L.exit()
 			return !type.types.some((type) => !this.isTypeResolved(type))
 		}
 
 		if (type instanceof IntersectionType) {
-			L.d(...lp, "it's an intersection type, checking all types")
+			L.d("it's an intersection type, checking all types")
+			L.exit()
 			return !type.types.some((type) => !this.isTypeResolved(type))
 		}
 
 		if (type instanceof ArrayType) {
-			L.d(...lp, "it's an array type, checking type of the Array")
+			L.d("it's an array type, checking type of the Array")
+			L.exit()
 			return this.isTypeResolved(type.arrayType)
 		}
 
 		// TODO maybe explicitly use the instaceof of other types here, to prevent
 		// false positive fallthroughs here
 
+		L.exit()
 		return true
 	}
 
 	public resolve(name: string) {
-		L.d(`<resolve>`, name)
+		L.enter(`${Parser.name}.resolve("${name}")`)
 
 		const declaration = this.declarations.find((type) => type.identifier === name)
 
 		if (!declaration) {
+			L.exit()
 			throw new Error(
 				`Could not find any type declaration with the name: ${name}. Available type declarations are: ${this.declarations
 					.map((type) => type.identifier)
@@ -196,52 +245,64 @@ export class Parser {
 		}
 
 		if (isInstanceOfUnresolvedClass(declaration)) {
+			L.exit()
 			return this.createResolvedTypeDeclaration(declaration, this.resolveType(declaration.type))
 		}
 
+		L.exit()
 		throw new Error(`Could not resolve declaration for: ${declaration.identifier}.`)
 	}
 
 	private resolveType(type: TypeReference | UnionType | TypeLiteral | ArrayType | IntersectionType): Type {
-		L.d(`<resolveType> ${type.toString()}`)
-		if (type instanceof TypeReference) {
-			return this.resolveTypeReference(type)
-		} else if (type instanceof UnionType) {
-			return this.resolveUnionType(type)
-		} else if (type instanceof IntersectionType) {
-			return this.resolveUnionType(type)
-		} else if (type instanceof TypeLiteral) {
-			return this.resolveTypeLiteral(type)
-		} else if (type instanceof ArrayType) {
-			return this.resolveArrayType(type)
-		} else {
-			throw new Error(`Type resolving for type ${type} is not implemented.`)
+		L.enter(`Parser.resolveType(${type.toString()})`)
+
+		const execute = () => {
+			if (type instanceof TypeReference) {
+				return this.resolveTypeReference(type)
+			} else if (type instanceof UnionType) {
+				return this.resolveUnionType(type)
+			} else if (type instanceof IntersectionType) {
+				return this.resolveUnionType(type)
+			} else if (type instanceof TypeLiteral) {
+				return this.resolveTypeLiteral(type)
+			} else if (type instanceof ArrayType) {
+				return this.resolveArrayType(type)
+			} else {
+				throw new Error(`Type resolving for type ${type} is not implemented.`)
+			}
 		}
+
+		const result = execute()
+		L.exit()
+		return result
 	}
 
 	private resolveTypeReference(type: TypeReference): Type {
-		const lp = [`<resolveTypeReference>`, type.toString()]
-		L.d(...lp)
+		L.enter(`${Parser.name}.resolveTypeReference(${type.toString()})`)
 
 		if (type.isPrimitive()) {
-			L.d(...lp, "it's a primitive")
+			L.d("it's a primitive")
+			L.exit()
 			return type
 		}
 
 		if (this.config.doNotResolve.includes(type.identifier)) {
-			L.d(...lp, "the identifier is part of the doNotResolve configuration")
+			L.d("the identifier is part of the doNotResolve configuration")
+			L.exit()
 			return type
 		}
 
 		const possibleLocalResolvedType = this.getDeclaration(type.identifier)
 
 		if (possibleLocalResolvedType) {
-			L.d(...lp, "it's already in the types")
+			L.d("it's already in the types")
 			if (this.isTypeResolved(possibleLocalResolvedType.type)) {
-				L.d(...lp, "it's resolved")
+				L.d("it's resolved")
+				L.exit()
 				return possibleLocalResolvedType.type
 			} else {
-				L.d(...lp, "it's not resolved")
+				L.d("it's not resolved")
+				L.exit()
 				return this.resolveType(possibleLocalResolvedType.type)
 			}
 		}
@@ -250,21 +311,20 @@ export class Parser {
 
 		if (possibleImport) {
 			try {
-				L.d(...lp, "it's a possible import")
+				L.d("it's a possible import")
 				this.resolveImport(possibleImport)
 			} catch (e) {
 				if (this.config.breakOnUnresolvedImports) {
+					L.exit()
 					throw e
 				} else {
-					L.d(
-						...lp,
-						`was not possible to resolve the import ${possibleImport.toString()}. Returning UnknownType because the config options breakOnUnresolvedImports is false.`,
-						e
-					)
+					L.d(e)
+					L.exit()
 					return new UnknownType()
 				}
 			}
 
+			L.exit()
 			return this.resolveTypeReference(type)
 		}
 
@@ -272,45 +332,53 @@ export class Parser {
 	}
 
 	private resolveUnionType<T extends UnionType | IntersectionType>(type: T): T {
-		L.d(`<resolveUnionType>`, type.toString())
+		L.enter(`resolveUnionType(${type.toString()})`)
 		const types = type.types
 
 		type.types = types.map((type) => {
 			if (this.isTypeResolved(type)) {
+				L.exit()
 				return type
 			}
 
+			L.exit()
 			return this.resolveType(type)
 		})
 
+		L.exit()
 		return type
 	}
 
 	private resolveTypeLiteral(type: TypeLiteral): TypeLiteral {
-		L.d(`<resolveTypeLiteral>`, type.toString())
+		L.enter(`resolveTypeLiteral(${type.toString()})`)
 		const keys = type.properties.keys()
 
 		for (const key of keys) {
 			const propertyTyp: Type = type.properties.get(key) as Type
 
 			if (!this.isTypeResolved(propertyTyp)) {
-				L.d(`<resolveTypeLiteral>`, `property: ${propertyTyp} is not resolved.`)
+				L.d(`property: ${propertyTyp} is not resolved.`)
 				const resolvedType = this.resolveType(propertyTyp)
 				type.properties.set(key, resolvedType)
 			}
 		}
 
+		L.exit()
 		return type
 	}
 
 	private resolveArrayType(type: ArrayType): ArrayType {
-		L.d(`<resolveArrayType>`, type.toString())
+		L.enter(`resolveArrayType(${type.toString()})`)
+
 		if (this.isTypeResolved(type.arrayType)) {
+			L.exit()
 			return type
 		} else {
 			const resolvedType = this.resolveType(type.arrayType)
 			// TODO would be better to involve a new ArrayType here
 			type.arrayType = resolvedType
+
+			L.exit()
 			return type
 		}
 	}

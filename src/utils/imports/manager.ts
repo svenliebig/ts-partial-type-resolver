@@ -1,8 +1,10 @@
-import { existsSync } from "fs"
-import { resolve } from "path"
-import { Import } from "./model"
+import { existsSync, readFileSync } from "fs"
+import { platform } from "os"
+import { resolve, sep } from "path"
 import { L } from "../logger"
 import { UnresolvedImportError } from "./errors"
+import { Import } from "./model"
+import { getTsFilePath } from "../getTsFilePath"
 
 export class ImportManager {
 	private imports: Array<Import> = []
@@ -23,32 +25,59 @@ export class ImportManager {
 	}
 
 	public resolve(i: Import) {
-		const lp = [`<ImportManager.resolve>`, i.toString()]
-		L.d(...lp)
+		L.enter(`ImportManager.resolve(${JSON.stringify(i)}))`)
 
 		if (isRelativePath(i.from)) {
 			const pathToFile = resolve(i.sourceDir, i.from)
 
-			const tsPath = `${pathToFile}.ts`
-			const tsxPath = `${pathToFile}.tsx`
+			const path = getTsFilePath(pathToFile)
 
-			L.d(...lp, `trying if exists: ${tsPath}`)
-
-			if (existsSync(tsPath)) {
-				L.d(...lp, `"${tsPath}" path exists`)
-				return tsPath
+			if (path !== null) {
+				L.exit()
+				return path
 			}
 
-			if (existsSync(tsxPath)) {
-				L.d(...lp, `"${tsPath}" path exists`)
-				return tsxPath
-			}
-
+			L.exit()
 			throw new UnresolvedImportError(i)
 		} else {
-			// this is a library
+			L.d(`it's a library path or an alias path`)
 
-			// recursion until mnt root: find closest package.json
+			// this should get the Import and find the package json with the source
+			const packageJsonPath = findClosestPackageJson(i.sourceDir)
+
+			if (packageJsonPath === null) {
+				L.f(`no package.json found`)
+				L.exit()
+				throw new UnresolvedImportError(i)
+			}
+
+			L.s(`found package.json: ${packageJsonPath}`)
+
+			const { dependencies, devDependencies } = JSON.parse(readFileSync(packageJsonPath, "utf-8"))
+			const allDependencies = { ...dependencies, ...devDependencies }
+
+			const [modulePath, hasModule] = isIn(i.from, allDependencies)
+			if (hasModule) {
+				const module = resolve(packageJsonPath, "..", "node_modules", modulePath)
+				L.s(`found dependency '${modulePath}' in package.json, resolving node_modules...`)
+
+				if (existsSync(module)) {
+					L.s(`module exists in ${module}`)
+					const modulepkg = JSON.parse(readFileSync(resolve(module, "package.json"), "utf-8"))
+
+					if ("types" in modulepkg) {
+						L.s(`found types in ${modulepkg.types}`)
+						L.exit()
+						return resolve(module, modulepkg.types)
+					} else {
+						L.f(`no types found in ${modulepkg.types}`)
+					}
+				} else {
+					L.f(`module does not exist in ${module}`)
+				}
+			} else {
+				L.f(`dependency '${i.from}' not found in package.json`)
+			}
 
 			// -- resolve node_modules
 
@@ -57,7 +86,7 @@ export class ImportManager {
 
 			// -- -- -- parse package.json and find `types` property
 			// -- -- -- find relative file path to that file
-
+			L.exit()
 			throw new UnresolvedImportError(i)
 		}
 	}
@@ -65,4 +94,40 @@ export class ImportManager {
 
 function isRelativePath(s: string) {
 	return s.startsWith("../") || s.startsWith("./")
+}
+
+const root = platform() == "win32" ? process.cwd().split(sep)[0] : "/"
+
+function findClosestPackageJson(source: string): string | null {
+	if (source === root) {
+		return null
+	}
+
+	const p = resolve(source, "..", "package.json")
+
+	if (existsSync(p)) {
+		return p
+	}
+
+	return findClosestPackageJson(resolve(source, ".."))
+}
+
+function isIn(module: string, deps: Record<string, string>): [string, boolean] {
+	if (module in deps) {
+		return [module, true]
+	}
+
+	const parts = module.split("/")
+
+	if (parts.length == 1) {
+		return ["", false]
+	}
+
+	parts.pop()
+
+	if (parts.length === 1) {
+		return ["", false]
+	}
+
+	return isIn(parts.join("/"), deps)
 }
