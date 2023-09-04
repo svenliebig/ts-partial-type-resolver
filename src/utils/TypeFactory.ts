@@ -1,10 +1,14 @@
 import {
 	isArrayTypeNode,
+	isConditionalTypeNode,
 	isFunctionTypeNode,
 	isIdentifier,
+	isIndexedAccessTypeNode,
 	isIntersectionTypeNode,
 	isLiteralTypeNode,
+	isMappedTypeNode,
 	isParenthesizedTypeNode,
+	isTupleTypeNode,
 	isTypeLiteralNode,
 	isTypeReferenceNode,
 	isUnionTypeNode,
@@ -31,6 +35,7 @@ import { UnknownType } from "../models"
 import { isVoidKeywordTypeNode } from "./isVoidKeywordTypeNode"
 import { FunctionType } from "../models/FunctionType"
 import { VoidType } from "../models/VoidType"
+import { isUnknownKeywordTypeNode } from "./isUnknownKeywordTypeNode"
 
 export class TypeFactory {
 	static create(node: TypeNode, identifier: string) {
@@ -75,6 +80,10 @@ export class TypeFactory {
 				return new TypeLiteral(node)
 			}
 
+			if (isFunctionTypeNode(node)) {
+				return new FunctionType(identifier, [], new UnknownType())
+			}
+
 			if (isBooleanKeywordTypeNode(node)) {
 				return new BooleanType()
 			}
@@ -83,17 +92,49 @@ export class TypeFactory {
 				return new UndefinedType()
 			}
 
+			if (isUnknownKeywordTypeNode(node)) {
+				return new UnknownType()
+			}
+
+			if (isVoidKeywordTypeNode(node)) {
+				return new VoidType(identifier)
+			}
+
 			if (isParenthesizedTypeNode(node)) {
 				// TODO
 				return new UnknownType()
 			}
 
-			if (isFunctionTypeNode(node)) {
-				return new FunctionType(identifier, [], new UnknownType())
+			// [A as keyof T]: ...
+			if (isIndexedAccessTypeNode(node)) {
+				// TODO
+				return new UnknownType()
 			}
 
-			if (isVoidKeywordTypeNode(node)) {
-				return new VoidType(identifier)
+			// bla extends T ? X : Y
+			if (isConditionalTypeNode(node)) {
+				// TODO
+				return new UnknownType()
+			}
+
+			// untyped arrays: []
+			if (isTupleTypeNode(node)) {
+				// TODO
+				return new UnknownType()
+			}
+
+			// occured here:
+			// export declare type Rejected<Entity extends ReviewableEntity> = {
+			//    dayta: Omit<A, "b"> & {
+			//    status: A.B;
+			// 	};
+			//  freigabedaten: RequireKeys<S, "a" | "b" | "c">;
+			// } & {
+			//  [T in keyof Omit<Entity, "status">]: Entity[T];
+			// };
+			if (isMappedTypeNode(node)) {
+				// TODO
+				return new UnknownType()
 			}
 
 			// return new UnknownType()

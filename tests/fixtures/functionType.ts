@@ -10,3 +10,5 @@ type VoidFunction = () => void
 
 type VoidFunctionWithParameter = (p: string) => void
 type VoidFunctionWithParameters = (p: string, n: number) => void
+
+type FunctionWithFunctionParameter = (f: NumberFunction) => void
