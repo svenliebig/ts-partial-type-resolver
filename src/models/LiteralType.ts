@@ -1,5 +1,6 @@
 import { FalseLiteral, isNumericLiteral, isStringLiteral, LiteralTypeNode, Node, NullLiteral, SyntaxKind, TrueLiteral } from "typescript"
 import { Type } from "./Type"
+import { printSyntaxKind } from "../utils/printSyntaxKind"
 
 // TODO why do I have to implement this
 function isNullerLiteral(node: Node): node is NullLiteral {
@@ -11,7 +12,7 @@ function isTrueLiteral(node: Node): node is TrueLiteral {
 }
 
 function isFalseLiteral(node: Node): node is FalseLiteral {
-	return node.kind === SyntaxKind.TrueKeyword
+	return node.kind === SyntaxKind.FalseKeyword
 }
 
 export class LiteralType extends Type {
@@ -31,7 +32,7 @@ export class LiteralType extends Type {
 		} else if (isFalseLiteral(type.literal)) {
 			this.value = "false"
 		} else {
-			throw new Error(`Unknown LiteralType kind: ${type.literal.kind}`)
+			throw new Error(`Unknown LiteralType kind: ${printSyntaxKind(type.literal.kind)}`)
 		}
 	}
 
