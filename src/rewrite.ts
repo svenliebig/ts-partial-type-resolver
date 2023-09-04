@@ -1,4 +1,4 @@
-import { BooleanType, EnumType, ArrayType } from "./models"
+import { ArrayType, BooleanType, EnumType } from "./models"
 import { IntersectionType } from "./models/IntersectionType"
 import { LiteralType } from "./models/LiteralType"
 import { NumberType } from "./models/NumberType"
@@ -54,10 +54,19 @@ export function rewrite(type: Type, transformers: TypeTransformers): string {
 	}
 
 	if (type instanceof IntersectionType) {
-		return type.types
-			.filter(filterUnknown)
-			.map((val) => rewrite(val, transformers))
-			.join(" & ")
+		let t = type.types.filter(filterUnknown)
+
+		t = t.reduce((acc: Array<Type>, curr, i) => {
+			const prev = acc[i - 1]
+			if (prev instanceof TypeLiteral && curr instanceof TypeLiteral) {
+				prev.properties = new Map([...prev.properties, ...curr.properties])
+				return acc
+			} else {
+				return [...acc, curr]
+			}
+		}, [])
+
+		return t.map((val) => rewrite(val, transformers)).join("")
 	}
 
 	if (type instanceof ArrayType) {
