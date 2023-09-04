@@ -3,11 +3,16 @@ import {
 	EnumMember,
 	Identifier,
 	isArrayTypeNode,
+	isConditionalTypeNode,
+	isFunctionTypeNode,
 	isIdentifier,
 	isIntersectionTypeNode,
 	isLiteralTypeNode,
 	isStringLiteral,
+	isTupleTypeNode,
 	isTypeLiteralNode,
+	isTypeNode,
+	isTypeQueryNode,
 	isTypeReferenceNode,
 	isUnionTypeNode,
 	PropertyName,
@@ -16,6 +21,7 @@ import {
 import { ArrayTypeDeclaration } from "../models/ArrayTypeDeclaration"
 import { EnumMembers } from "../models/EnumType"
 import { EnumTypeDeclaration } from "../models/EnumTypeDeclaration"
+import { FunctionTypeDeclaration } from "../models/FunctionTypeDeclaration"
 import { IntersectionTypeDeclaration } from "../models/IntersectionTypeDeclaration"
 import { LiteralTypeDeclaration } from "../models/LiteralTypeDeclaration"
 import { NumberTypeDeclaration } from "../models/NumberTypeDeclaration"
@@ -23,12 +29,13 @@ import { StringTypeDeclaration } from "../models/StringTypeDeclaration"
 import { TypeLiteralDeclaration } from "../models/TypeLiteralDeclaration"
 import { TypeReferenceDeclaration } from "../models/TypeReferenceDeclaration"
 import { UnionTypeDeclaration } from "../models/UnionTypeDeclaration"
+import { DeclarationMeta } from "../parser"
 import { isDefaultModifier } from "./isDefaultModifier"
 import { isExportModifier } from "./isExportModifier"
 import { isNumberKeywordTypeNode } from "./isNumberKeywordTypeNode"
 import { isStringKeywordTypeNode } from "./isStringKeywordTypeNode"
-import { L } from "./logger"
-import { DeclarationMeta } from "../parser"
+import { printSyntaxKind } from "./printSyntaxKind"
+import { TypeFactory } from "./TypeFactory"
 
 export class DeclarationFactory {
 	public static createEnumDeclaration(statement: EnumDeclaration) {
@@ -57,8 +64,6 @@ export class DeclarationFactory {
 	}
 
 	public static createTypeDeclaration(statement: TypeAliasDeclaration) {
-		L.d(`<TypeAliasDeclarationFactory.create>`, statement.kind, statement.type.kind)
-
 		const meta: DeclarationMeta = DeclarationFactory.createMeta(statement)
 
 		if (isLiteralTypeNode(statement.type)) {
@@ -97,7 +102,32 @@ export class DeclarationFactory {
 			return new TypeLiteralDeclaration(meta, statement.type)
 		}
 
-		throw new Error(`DeclarationFactory: Unknown TypeNode kind '${statement.type.kind}'`)
+		if (isFunctionTypeNode(statement.type)) {
+			return new FunctionTypeDeclaration(meta, TypeFactory.create(statement.type.type, meta.identifier))
+		}
+
+		if (isTupleTypeNode(statement.type)) {
+			// TODO use a correct type
+			return new StringTypeDeclaration(meta)
+		}
+
+		if (isConditionalTypeNode(statement.type)) {
+			// TODO use a correct type
+			return new StringTypeDeclaration(meta)
+		}
+
+		if (isTypeQueryNode(statement.type)) {
+			// TODO use a correct type
+			return new StringTypeDeclaration(meta)
+		}
+
+		// keyof
+		if (isTypeNode(statement.type)) {
+			// TODO use a correct type
+			return new StringTypeDeclaration(meta)
+		}
+
+		throw new UnhandledTypeNodeError(statement)
 	}
 
 	public static createMeta(statement: TypeAliasDeclaration | EnumDeclaration): DeclarationMeta {
@@ -106,5 +136,21 @@ export class DeclarationFactory {
 			exported: statement.modifiers?.some(isExportModifier) ?? false,
 			default: statement.modifiers?.some(isDefaultModifier) ?? false,
 		}
+	}
+}
+
+class UnhandledTypeNodeError extends Error {
+	constructor(type: TypeAliasDeclaration) {
+		super()
+		this.message = this.createMessage(type)
+	}
+
+	private createMessage(node: TypeAliasDeclaration): string {
+		return [
+			`DeclarationFactory: Unhandled TypeNode`,
+			`  kind: ${printSyntaxKind(node.kind)}`,
+			`  name: ${JSON.stringify(node.name)}`,
+			`  all: ${JSON.stringify(node, null, 2)}`,
+		].join("\n")
 	}
 }
