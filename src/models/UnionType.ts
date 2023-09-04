@@ -6,9 +6,9 @@ export class UnionType extends Type {
 	public types: Array<Type>
 
 	// TODO these `types` should be a parameter instead of creating a dependency to the `typescript` lib here
-	constructor(node: UnionTypeNode) {
+	constructor(node: UnionTypeNode, public identifier: string) {
 		super()
-		this.types = node.types.map(TypeFactory.create)
+		this.types = node.types.map((t) => TypeFactory.create(t, this.identifier))
 	}
 
 	toString(): string {

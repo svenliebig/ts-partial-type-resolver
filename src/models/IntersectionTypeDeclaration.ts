@@ -1,18 +1,17 @@
-import { IntersectionTypeNode } from "typescript";
-import { IntersectionType } from "./IntersectionType";
-import { DeclarationMeta } from "../parser";
-import { TypeDeclaration } from "./TypeDeclaration";
-
+import { IntersectionTypeNode } from "typescript"
+import { IntersectionType } from "./IntersectionType"
+import { DeclarationMeta } from "../parser"
+import { TypeDeclaration } from "./TypeDeclaration"
 
 export class IntersectionTypeDeclaration extends TypeDeclaration {
-	public type: IntersectionType;
+	public type: IntersectionType
 
 	constructor(meta: DeclarationMeta, node: IntersectionTypeNode) {
-		super(meta);
-		this.type = new IntersectionType(node);
+		super(meta)
+		this.type = new IntersectionType(node, this.identifier)
 	}
 
 	typeToString(): string {
-		return this.type.toString();
+		return this.type.toString()
 	}
 }

@@ -42,3 +42,15 @@ export type ExportedComplexNestedTypeLiteralWithImports = {
 		object: BasicTypeLiteral
 	}
 }
+
+type WithUndefined = {
+	undefined: undefined
+}
+
+type WithUnionUndefinedAndString = {
+	union: undefined | string
+}
+
+type WithNull = {
+	null: null
+}

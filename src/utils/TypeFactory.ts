@@ -14,6 +14,7 @@ import { IntersectionType } from "../models/IntersectionType"
 import { LiteralType } from "../models/LiteralType"
 import { NumberType } from "../models/NumberType"
 import { StringType } from "../models/StringType"
+import { TypeDeclaration } from "../models/TypeDeclaration"
 import { TypeLiteral } from "../models/TypeLiteral"
 import { TypeReference } from "../models/TypeReference"
 import { UnionType } from "../models/UnionType"
@@ -21,9 +22,11 @@ import { isBooleanKeywordTypeNode } from "./isBooleanKeywordTypeNode"
 import { isNumberKeywordTypeNode } from "./isNumberKeywordTypeNode"
 import { isStringKeywordTypeNode } from "./isStringKeywordTypeNode"
 import { L } from "./logger"
+import { isUndefinedKeywordTypeNode } from "./isUndefinedKeywordTypeNode"
+import { UndefinedType } from "../models/UndefinedType"
 
 export class TypeFactory {
-	static create(node: TypeNode) {
+	static create(node: TypeNode, identifier: string) {
 		L.d(`<TypeFactory.create>`, node.kind)
 
 		if (isArrayTypeNode(node)) {
@@ -35,15 +38,16 @@ export class TypeFactory {
 		}
 
 		if (isUnionTypeNode(node)) {
-			return new UnionType(node)
+			// TODO identifier is not resolved yet
+			return new UnionType(node, identifier)
 		}
 
 		if (isIntersectionTypeNode(node)) {
-			return new IntersectionType(node)
+			return new IntersectionType(node, identifier)
 		}
 
 		if (isStringKeywordTypeNode(node)) {
-			return new StringType()
+			return new StringType(identifier)
 		}
 
 		if (isNumberKeywordTypeNode(node)) {
@@ -66,6 +70,10 @@ export class TypeFactory {
 			return new BooleanType()
 		}
 
-		throw new Error(`Unknown TypeNode kind: ${node.kind}`)
+		if (isUndefinedKeywordTypeNode(node)) {
+			return new UndefinedType()
+		}
+
+		throw new Error(`TypeFactory: Unknown TypeNode kind '${node.kind}'`)
 	}
 }

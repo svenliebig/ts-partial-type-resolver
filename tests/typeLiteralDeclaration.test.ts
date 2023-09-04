@@ -60,3 +60,21 @@ test("toString for ComplexNestedTypeLiteralWithImports after resolve", (t) => {
 	const type = "{ union: string | number, nested: { object: { str: string, num: number } } }"
 	t.is(str, `type ComplexNestedTypeLiteralWithImports = ${type}`)
 })
+
+test("toString for WithNull after resolve", (t) => {
+	const str = parser.resolve("WithNull")?.toString()
+	const type = "{ null: null }"
+	t.is(str, `type WithNull = ${type}`)
+})
+
+test("toString for WithUndefined after resolve", (t) => {
+	const str = parser.resolve("WithUndefined")?.toString()
+	const type = "{ undefined: undefined }"
+	t.is(str, `type WithUndefined = ${type}`)
+})
+
+test("toString for WithUnionUndefinedAndString after resolve", (t) => {
+	const str = parser.resolve("WithUnionUndefinedAndString")?.toString()
+	const type = "{ union: undefined | string }"
+	t.is(str, `type WithUnionUndefinedAndString = ${type}`)
+})

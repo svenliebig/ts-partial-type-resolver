@@ -12,7 +12,7 @@ export class TypeLiteral extends Type {
 			if (isPropertySignature(member)) {
 				if (isIdentifier(member.name)) {
 					if (member.type) {
-						this.properties.set(member.name.text, TypeFactory.create(member.type))
+						this.properties.set(member.name.text, TypeFactory.create(member.type, member.name.text))
 					} else {
 						throw new Error(`Member has no type node: ${member.name.text}`)
 					}

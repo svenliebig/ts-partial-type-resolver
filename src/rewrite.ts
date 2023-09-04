@@ -6,6 +6,7 @@ import { StringType } from "./models/StringType"
 import { Type } from "./models/Type"
 import { TypeLiteral } from "./models/TypeLiteral"
 import { TypeReference } from "./models/TypeReference"
+import { UndefinedType } from "./models/UndefinedType"
 import { UnionType } from "./models/UnionType"
 import { UnknownType } from "./models/UnknownType"
 
@@ -20,6 +21,7 @@ export type TypeTransformers = {
 	string?(type: StringType): string
 	number?(type: NumberType): string
 	reference?(type: TypeReference): string
+	undefined?(type: UndefinedType): string
 }
 
 export function rewrite(type: Type, transformers: TypeTransformers): string {
@@ -47,6 +49,10 @@ export function rewrite(type: Type, transformers: TypeTransformers): string {
 		return transformers.reference?.(type) ?? type.toString()
 	}
 
+	if (type instanceof UndefinedType) {
+		return transformers.undefined?.(type) ?? type.toString()
+	}
+
 	if (type instanceof IntersectionType) {
 		return type.types
 			.filter(filterUnknown)
@@ -62,7 +68,8 @@ export function rewrite(type: Type, transformers: TypeTransformers): string {
 		if (isOnlyBasicTypes(type.types)) {
 			return rewrite(type.types[0], transformers)
 		}
-		return "Union..."
+
+		return rewrite(type.types[0], transformers) // + " | " + rewrite(type.types[1], transformers)
 	}
 
 	if (type instanceof TypeLiteral) {
@@ -79,5 +86,5 @@ export function rewrite(type: Type, transformers: TypeTransformers): string {
 }
 
 function isOnlyBasicTypes(types: Array<Type>) {
-	return types.every((type) => [BooleanType, StringType, UnknownType, NumberType, LiteralType].some((basic) => type instanceof basic))
+	return types.every((type) => [BooleanType, StringType, UnknownType, NumberType, LiteralType, UndefinedType].some((basic) => type instanceof basic))
 }

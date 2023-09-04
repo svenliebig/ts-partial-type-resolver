@@ -19,16 +19,17 @@ export class ArrayType extends Type {
 		super()
 
 		// TODO this should not be necessary
-		this.arrayType = new StringType()
+		// TODO add declarion to this later
+		this.arrayType = new StringType(undefined as any)
 
 		if (isTypeReferenceNode(node)) {
 			if (node.typeArguments) {
 				for (const argument of node.typeArguments) {
-					this.arrayType = TypeFactory.create(argument)
+					this.arrayType = TypeFactory.create(argument, "") // TODO
 				}
 			}
 		} else {
-			this.arrayType = TypeFactory.create(node.elementType)
+			this.arrayType = TypeFactory.create(node.elementType, "") // TODO
 		}
 	}
 

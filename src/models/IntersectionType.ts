@@ -5,9 +5,9 @@ import { Type } from "./Type"
 export class IntersectionType extends Type {
 	public types: Array<Type>
 
-	constructor(node: IntersectionTypeNode) {
+	constructor(node: IntersectionTypeNode, public identifier: string) {
 		super()
-		this.types = node.types.map(TypeFactory.create)
+		this.types = node.types.map((t) => TypeFactory.create(t, identifier))
 	}
 
 	toString(): string {

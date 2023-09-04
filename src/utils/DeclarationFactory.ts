@@ -97,7 +97,7 @@ export class DeclarationFactory {
 			return new TypeLiteralDeclaration(meta, statement.type)
 		}
 
-		throw new Error(`Unknown TypeNode kind: ${statement.type.kind}`)
+		throw new Error(`DeclarationFactory: Unknown TypeNode kind '${statement.type.kind}'`)
 	}
 
 	public static createMeta(statement: TypeAliasDeclaration | EnumDeclaration): DeclarationMeta {
